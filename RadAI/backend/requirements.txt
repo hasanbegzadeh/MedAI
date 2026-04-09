@@ -1,0 +1,60 @@
+# ─── Core ────────────────────────────────────────────────────────────────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.8.2
+pydantic-settings==2.4.0
+python-multipart==0.0.12
+PyJWT==2.9.0
+httpx==0.27.2
+
+# ─── Database ────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.35
+asyncpg==0.29.0
+alembic==1.13.3
+psycopg2-binary==2.9.9
+
+# ─── Cache / Queue ───────────────────────────────────────────────────────────
+redis==5.1.0
+celery==5.4.0
+flower==2.0.1
+
+# ─── DICOM Processing ────────────────────────────────────────────────────────
+pydicom==2.4.4
+SimpleITK==2.4.0
+nibabel==5.3.1
+numpy==1.26.4
+scipy==1.14.1
+highdicom>=0.24.0
+pydicom-seg>=0.4.1
+
+# ─── AI / ML ─────────────────────────────────────────────────────────────────
+# PyTorch >=2.6.0 required for RTX 50-series Blackwell (sm_120) GPU support
+torch>=2.6.0
+torchvision>=0.21.0
+# monai>=1.4.0              # Uncomment when implementing AI pipeline
+monai==1.4.0
+totalsegmentator==2.13.0
+nnInteractive>=0.1.0
+
+# ─── Voice Dictation ─────────────────────────────────────────────────────────
+# faster-whisper for medical speech-to-text (replaces MedASR-via-Ollama which
+# can't work — MedASR needs audio input, not Ollama's text-only API)
+faster-whisper>=1.1.0
+
+# ─── Reporting ───────────────────────────────────────────────────────────────
+Jinja2==3.1.4
+reportlab==4.2.5
+xhtml2pdf==0.2.16
+weasyprint==62.3
+
+# ─── Utilities ───────────────────────────────────────────────────────────────
+python-dotenv==1.0.1
+structlog==24.4.0
+tenacity==9.0.0
+aiofiles==24.1.0
+slowapi==0.1.9
+passlib[bcrypt]==1.7.4
+
+# ─── Metadata Agent (KeyBERT) ─────────────────────────────────────────────────
+keybert>=0.8.0
+sentence-transformers>=2.2.0

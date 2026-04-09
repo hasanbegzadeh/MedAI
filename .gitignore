@@ -1,0 +1,38 @@
+# ─── Environment & Secrets ──────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Python ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.ruff_cache/
+
+# ─── Logs ───────────────────────────────────────────────
+*.log
+logs/
+
+# ─── OS ─────────────────────────────────────────────────
+desktop.ini
+Thumbs.db
+.DS_Store
+
+# ─── IDE ────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+
+# ─── Skills (external/generated) ───────────────────────
+skills/
+skills-lock.json
+.agents/
+
+# ─── Claude settings ───────────────────────────────────
+.claude/
+
+# ─── Misc ──────────────────────────────────────────────
+opencode.json
+Modelfile.tools
