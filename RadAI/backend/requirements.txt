@@ -28,10 +28,9 @@ highdicom>=0.24.0
 pydicom-seg>=0.4.1
 
 # ─── AI / ML ─────────────────────────────────────────────────────────────────
-# PyTorch >=2.6.0 required for RTX 50-series Blackwell (sm_120) GPU support
-torch>=2.6.0
-torchvision>=0.21.0
-# monai>=1.4.0              # Uncomment when implementing AI pipeline
+# NOTE: torch and torchvision are installed in the Dockerfile from the cu128
+# wheel index (required for RTX 50-series Blackwell sm_120 support). Do not
+# add torch here or pip may downgrade/reinstall a CPU or cu124 build.
 monai==1.4.0
 totalsegmentator==2.13.0
 nnInteractive>=0.1.0

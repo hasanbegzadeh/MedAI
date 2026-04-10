@@ -30,8 +30,9 @@ services:
       ORTHANC__NAME: "RadAI PACS"
       ORTHANC__AUTHENTICATION_ENABLED: "true"
       ORTHANC__REGISTERED_USERS: '{"orthanc": "${ORTHANC_PASSWORD}"}'
+      ORTHANC_PASSWORD: ${ORTHANC_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- --http-user=orthanc --http-passwd=${ORTHANC_PASSWORD} http://localhost:8042/system || exit 1"]
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,base64,os; p=os.environ['ORTHANC_PASSWORD']; r=urllib.request.Request('http://localhost:8042/system'); r.add_header('Authorization','Basic '+base64.b64encode(('orthanc:'+p).encode()).decode()); urllib.request.urlopen(r)\""]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -97,6 +98,17 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    # GPU passthrough for AI inference (RTX 5060 Blackwell sm_120)
+    # Requires nvidia-container-toolkit installed on host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,11 +117,11 @@ services:
       orthanc:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/health || exit 1"]
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 30s
     restart: unless-stopped
     networks:
       - radai-net
@@ -131,6 +143,16 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    # GPU passthrough for AI inference jobs (TotalSegmentator, nnInteractive)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     depends_on:
       redis:
         condition: service_healthy
