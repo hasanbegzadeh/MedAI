@@ -19,13 +19,15 @@ celery==5.4.0
 flower==2.0.1
 
 # ─── DICOM Processing ────────────────────────────────────────────────────────
-pydicom==2.4.4
+# pydicom 3.x is required by highdicom>=0.24.0. We use highdicom for all
+# DICOM-SEG / SR creation; pydicom-seg is dropped because it pins pydicom<3 and
+# is no longer needed — highdicom covers the same use cases and more.
+pydicom>=3.0.1,<4.0.0
 SimpleITK==2.4.0
 nibabel==5.3.1
 numpy==1.26.4
 scipy==1.14.1
 highdicom>=0.24.0
-pydicom-seg>=0.4.1
 
 # ─── AI / ML ─────────────────────────────────────────────────────────────────
 # NOTE: torch and torchvision are installed in the Dockerfile from the cu128
