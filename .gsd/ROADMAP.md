@@ -1,13 +1,13 @@
 ---
 milestone: RadAI Phase 0-3
-version: 1.0.0
-updated: 2026-04-11T00:00:00Z
+version: 1.1.0
+updated: 2026-04-11T12:00:00Z
 ---
 
 # Roadmap
 
-> **Current Phase:** Phase 0 - Backend Infrastructure
-> **Status:** ✅ Complete (verification pending)
+> **Current Phase:** Phase 1 - AI Segmentation (starting)
+> **Status:** Phase 0 ✅ verified end-to-end (4/4 critical checks); Phase 1 beginning
 
 ## Must-Haves (from SPEC)
 
@@ -19,17 +19,20 @@ updated: 2026-04-11T00:00:00Z
 - [x] OpenRouter cloud LLM integration
 - [x] WebSocket progress streaming
 - [x] Rate limiting (SlowAPI)
-- [ ] Real LiteMedSAM implementation (currently mock)
-- [ ] Verification evidence for all components
+- [x] Verification evidence for all components (verify_phase_0.py 4/4 green)
+- [ ] Real LiteMedSAM implementation (currently mock — Phase 1, Plan 1.1)
 
 ---
 
 ## Phases
 
 ### Phase 0: Backend Infrastructure
-**Status:** ✅ Complete (verification pending)
+**Status:** ✅ Complete and verified (2026-04-11)
 **Objective:** Core backend, Docker stack, GPU scheduler, API layer
 **Depends on:** None
+**Verification:** `python scripts/verify_phase_0.py` → 4/4 critical checks green
+(Backend API + OHIF + Orthanc PACS + JWT Auth all OK; Ollama + MedGemma 1.5 4B
+reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 
 **Completed:**
 - [x] Docker Compose stack (PostgreSQL, Redis, Orthanc, OHIF, FastAPI, Celery, Nginx)
@@ -48,20 +51,25 @@ updated: 2026-04-11T00:00:00Z
 - [x] CUDA 12.8 Blackwell support (RTX 5060 sm_120)
 - [x] Development tooling (Makefile, smoke tests, DICOM uploader)
 
-**Remaining:**
-- [ ] Replace LiteMedSAM mock with real implementation
-- [ ] Verify DICOM converter pipeline (converter.py, anonymizer.py, seg_export.py)
-- [ ] Test Celery queue system end-to-end
-- [ ] Capture verification evidence for all components
-- [ ] Fix slowapi compatibility issues (DONE, committed)
-- [ ] Fix duplicate function in scheduler.py (DONE, committed)
+**Completed (verification & fixes, 2026-04-11):**
+- [x] Fix slowapi compatibility (`f3ef4f0`)
+- [x] Fix duplicate function in scheduler.py (`e637ab6`)
+- [x] Fix pydicom 3.x / highdicom chain (`1a4e4e0`)
+- [x] Fix bcrypt 5.x × passlib 1.7.4 incompatibility (`2e11b34`)
+- [x] Add idempotent admin seed script + Makefile wiring (`2e11b34`)
+- [x] End-to-end verify_phase_0.py passes (4/4)
+
+**Deferred into Phase 1 (carried over, not blocking Phase 0):**
+- [ ] Replace LiteMedSAM mock with real implementation → Plan 1.1
+- [ ] Verify DICOM converter pipeline on a real CT study → Plan 1.2
+- [ ] Test Celery queue system end-to-end → Plan 1.2
 
 ---
 
 ### Phase 1: AI Segmentation
-**Status:** ⬜ Not Started
+**Status:** 🟡 Starting (2026-04-11)
 **Objective:** End-to-end AI segmentation workflow with OHIF integration
-**Depends on:** Phase 0 verification
+**Depends on:** Phase 0 verification ✅
 
 **Plans:**
 - [ ] Plan 1.1: Implement real LiteMedSAM (remove mock)
@@ -130,8 +138,8 @@ updated: 2026-04-11T00:00:00Z
 
 | Phase | STATUS | Complete | Remaining |
 |-------|--------|----------|-----------|
-| 0 | ✅ Verifying | 17/19 | 2 (LiteMedSAM, verification) |
-| 1 | ⬜ Not Started | 0/7 | 7 |
+| 0 | ✅ Verified | 18/18 | 0 (LiteMedSAM moved to Phase 1) |
+| 1 | 🟡 Starting | 0/7 | 7 |
 | 2 | ⬜ Not Started | 0/8 | 8 |
 | 3 | ⬜ Not Started | 0/6 | 6 |
 
@@ -141,8 +149,8 @@ updated: 2026-04-11T00:00:00Z
 
 | Phase | Started | Completed | Duration |
 |-------|---------|-----------|----------|
-| 0 | 2026-04-10 | ~2026-04-11 | ~1 day |
-| 1 | — | — | — |
+| 0 | 2026-04-10 | 2026-04-11 | ~1 day |
+| 1 | 2026-04-11 | — | — |
 | 2 | — | — | — |
 | 3 | — | — | — |
 
@@ -152,9 +160,9 @@ updated: 2026-04-11T00:00:00Z
 
 | Issue | Phase | Priority | Status |
 |-------|-------|----------|--------|
-| LiteMedSAM uses mock | Phase 0 | HIGH | Identified |
-| DICOM processing depth unverified | Phase 0 | MEDIUM | Needs verification |
-| Celery not tested | Phase 0 | MEDIUM | Needs testing |
-| Voice dictation not verified | Phase 0 | MEDIUM | Needs verification |
-| No OHIF extensions yet | Phase 1 | HIGH | Planned |
-| Report template engine missing | Phase 2 | HIGH | Not started |
+| LiteMedSAM uses mock | Phase 1 | HIGH | Plan 1.1 — next |
+| DICOM processing depth unverified | Phase 1 | MEDIUM | Plan 1.2 |
+| Celery not tested end-to-end | Phase 1 | MEDIUM | Plan 1.2 |
+| Voice dictation not verified | Phase 2 | MEDIUM | Plan 2.4 |
+| No OHIF extensions yet | Phase 1 | HIGH | Plan 1.3 |
+| Report template engine missing | Phase 2 | HIGH | Plan 2.2 |
