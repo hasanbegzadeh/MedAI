@@ -3,91 +3,58 @@
 ## Current Position
 
 **Milestone:** RadAI Phase 0-3
-**Phase:** Phase 1 - AI Segmentation (starting)
-**Status:** Phase 0 verified ✅ | Phase 1 plans defined, execution beginning
-**Plan:** Execute Plan 1.2 (E2E DICOM→NIfTI→SEG pipeline) → Plan 1.1 (real LiteMedSAM) → Plan 1.3 (OHIF extension)
+**Phase:** Phase 1 - AI Segmentation (Plan 1.2 ✅ COMPLETE)
+**Status:** Plan 1.2 verified ✅ | Plan 1.1 and 1.3 next
+**Plan:** Execute Plan 1.1 (real LiteMedSAM) → Plan 1.3 (OHIF extension)
 
-## Assessment Summary (2026-04-11 Full Review)
+## Last Action
 
-A comprehensive review of all project files was completed. Key findings:
+**Plan 1.2 E2E DICOM→NIfTI→SEG pipeline: VERIFIED ✅**
 
-### Phase 0 — Complete & Verified
-- Docker stack: all 7 services defined (PostgreSQL, Redis, Orthanc, OHIF, FastAPI, Celery, Nginx)
-- GPU model scheduler: thread-safe singleton with VRAM tracking, load/unload cycle
-- TotalSegmentator: subprocess integration with timeout, progress callbacks
-- nnInteractive: integration scaffolded (simulated prediction step)
-- Ollama MedGemma 1.5 4B: async report generation
-- OpenRouter Gemma 4 31B: Tier 2 cloud with retry logic
-- WebSocket: real-time progress streaming with 120s heartbeat
-- JWT auth + rate limiting (slowapi) + audit middleware
-- CUDA 12.8 Blackwell support (RTX 5060 sm_120 confirmed)
-- Verification: `verify_phase_0.py` passes 4/4 critical checks
+End-to-end TotalSegmentator workflow confirmed working:
+1. Synthetic CT (32 slices) uploaded to Orthanc
+2. Studies synced from Orthanc → PostgreSQL via `/api/v1/studies/sync-from-orthanc`
+3. AI job triggered via `POST /api/v1/ai/studies/{id}/run` with `job_type=totalsegmentator`
+4. Job completed with `status=completed`, `progress_pct=100`
+5. DICOM-SEG series confirmed in Orthanc: `Modality=SEG`, `SeriesDescription=RadAI Segmentation`
 
-### Phase 1 — Plans Defined, Not Yet Executed
-| Plan | Status | Description |
-|------|--------|-------------|
-| 1.1 | ⬜ Pending | Replace LiteMedSAM mock with real SAM checkpoint |
-| 1.2 | 🟡 Next | E2E DICOM→NIfTI→TotalSegmentator→DICOM-SEG round-trip |
-| 1.3 | ⬜ Pending | OHIF custom extension (AI tools panel) |
-| 1.4 | ⬜ Pending | TotalSegmentator E2E on real CT study |
-| 1.5 | ⬜ Pending | Segmentation overlays in OHIF |
-| 1.6 | ⬜ Pending | Nodule detection heuristic |
-| 1.7 | ⬜ Pending | nnInteractive interactive refinement |
+**Three bugs found and fixed during Plan 1.2:**
+1. **Missing TotalSegmentator weights** — container had no cached weights; pre-download script added
+2. **highdicom API change** — `SegmentDescription` requires `algorithm_identification` (AlgorithmIdentificationSequence), not `algorithm_name`
+3. **Missing required DICOM attributes** — `Segmentation` constructor needs 6 mandatory fields + source DICOMs need StudyDate/PatientName/etc.
 
-### Code Quality
-- Duplicate `_is_retryable_openrouter_error` was already fixed (commit `e637ab6`)
-- `from __future__ import annotations` correctly removed from slowapi-decorated files
-- LiteMedSAM still returns mock `"simulated_local_mask"` string
-- nnInteractive job simulates prediction (no real model call yet)
+**Commits:**
+- `af1905a` fix(seg-export): use algorithm_identification instead of algorithm_name
+- `cfcf99d` fix(phase-1.2): complete E2E DICOM→NIfTI→SEG pipeline
+
+## Phase 1 Progress
+
+| Plan | Status | Notes |
+|------|--------|-------|
+| 1.1 LiteMedSAM real impl | ⬜ Pending | Next priority |
+| 1.2 E2E SEG pipeline | ✅ COMPLETE | Verified with synthetic CT |
+| 1.3 OHIF extension | ⬜ Pending | After Plan 1.1 |
+| 1.4 TotalSegmentator real CT | ⬜ Pending | Needs real CT dataset |
+| 1.5 SEG overlays in OHIF | ⬜ Pending | Depends on 1.3 |
+| 1.6 Nodule detection | ⬜ Pending | |
+| 1.7 nnInteractive refine | ⬜ Pending | |
 
 ## Active Decisions
 
 | Decision | Choice | Made | Affects |
 |----------|--------|------|---------|
 | GSD methodology adopted | SPEC→PLAN→EXECUTE→VERIFY→COMMIT | 2026-04-11 | All future work |
-| Phase 0 scope finalized | No new features, only verification | 2026-04-11 | Phase 0 |
-| LiteMedSAM priority | Replace mock before Phase 1.2+ | 2026-04-11 | Phase 0/1 boundary |
-| bcrypt pinned <4.1 | keep passlib 1.7.4 compatible | 2026-04-11 | Auth subsystem |
-| Admin seed script | idempotent, env-overridable | 2026-04-11 | dev/CI bootstrap |
-| slowapi + PEP 563 | never combine in endpoint files | 2026-04-11 | all API routers |
 | Plan 1.2 first | E2E pipeline has highest signal | 2026-04-11 | Phase 1 execution order |
+| highdicom API pinned | AlgorithmIdentificationSequence required | 2026-04-11 | seg_export.py, converter.py |
+| Synthetic DICOM attrs | Default PatientName/StudyDate added | 2026-04-11 | converter.py robustness |
+| Weights pre-download | Script added to backend/scripts/ | 2026-04-11 | Container setup |
 
 ## Blockers
 
-- [ ] Docker stack must be running for E2E tests
-- [ ] Real CT study needed for meaningful verification (synthetic works for smoke test)
+- [ ] No blockers. E2E pipeline working.
 
-## Next Actions (Phase 1 Execution Order)
+## Next Actions
 
-1. **Plan 1.2** — E2E DICOM→NIfTI→SEG round-trip verification
-   - Upload synthetic CT via `upload_test_dicom.py --synthetic`
-   - Create Study record in PostgreSQL
-   - POST `/api/v1/ai/studies/{id}/run` with `job_type=totalsegmentator`
-   - Poll job status until completed
-   - Verify DICOM-SEG in Orthanc via QIDO-RS
-
-2. **Plan 1.1** — Replace LiteMedSAM mock with real implementation
-   - Download LiteMedSAM checkpoint
-   - Implement real inference path in `scheduler.load_litemedsam()`
-   - Update `medsam2.py` to return real mask files
-
-3. **Plan 1.3** — OHIF extension skeleton
-   - Custom panel with "Run AI" button
-   - WebSocket progress display
-   - SEG series auto-load
-
-## Session Context
-
-**What was done this session (2026-04-11 review):**
-- Completed comprehensive project file review
-- Confirmed Phase 0 is complete and verified
-- Confirmed Phase 1 plans are well-defined in `.gsd/plans/phase-1-ai-segmentation.md`
-- Identified that duplicate function fix was already applied
-- Ready to begin Phase 1 execution
-
-**Key architectural reminders:**
-- Model scheduler: singleton, ONE model in VRAM at a time
-- LLMs never generate findings — only polish language
-- All AI operations logged for audit trail
-- Backend talks to Ollama at `host.docker.internal:11434`
-- `from __future__ import annotations` banned in slowapi-decorated files
+1. **Plan 1.1** — Replace LiteMedSAM mock with real SAM checkpoint implementation
+2. **Plan 1.3** — Build OHIF custom extension (AI tools panel)
+3. **Plan 1.4** — Test with real CT dataset (NSCLC-Radiomics or similar)

@@ -17,26 +17,28 @@ class MedSAM2Agent:
     async def segment_bbox(self, image_path: str, bbox: list[int]) -> Optional[Dict[str, Any]]:
         """
         Request segmentation using a bounding box.
-        
+
         Args:
-            image_path: Path to the NIfTI/DICOM file.
+            image_path: Path to the NIfTI file.
             bbox: [x_min, y_min, x_max, y_max]
-            
+
         Returns:
-            JSON Dict containing segmentation mask location or coordinates.
+            JSON Dict containing segmentation mask path and metadata,
+            or None on failure.
         """
         scheduler = get_scheduler()
         try:
             # Scheduler will automatically unload other models to free VRAM for MedSAM
             model = scheduler.load_litemedsam()
-            
-            # Execute simulated or real inference
+
+            # Execute real inference
             if hasattr(model, 'segment_bbox'):
                 result = model.segment_bbox(image_path, bbox)
+                # result is {"status": "success", "mask_path": "...", "slice_index": N, ...}
+                return result
             else:
-                result = {"status": "success", "mask": "[simulated local mask result]"}
-                
-            return result
+                logger.error("Loaded model does not have segment_bbox method")
+                return None
         except ModelSchedulerError as exc:
             logger.error(f"LiteMedSAM inference failed: {exc}")
             return None

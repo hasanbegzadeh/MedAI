@@ -215,11 +215,11 @@ class ModelScheduler:
                 raise ModelSchedulerError(f"Failed to load nnInteractive: {exc}") from exc
 
     def load_litemedsam(self) -> object:
-        """Load LiteMedSAM inference session (~3-5 GB VRAM).
-        
+        """Load LiteMedSAM inference session (~2-3 GB VRAM).
+
         Returns:
             LiteMedSAM model instance.
-            
+
         Raises:
             ModelSchedulerError: If LiteMedSAM cannot be loaded.
         """
@@ -230,19 +230,31 @@ class ModelScheduler:
 
             self.unload_current()
             try:
-                logger.info("Loading LiteMedSAM")
-                
-                # Mocking the actual load for the architecture setup
-                # In production, this would import segment_anything and load the LiteMedSAM weights
-                class MockLiteMedSAM:
-                    def segment_bbox(self, img, bbox):
-                        return {"status": "success", "mask": "simulated_local_mask"}
+                from app.ai.litemedsam_infer import LiteMedSAMInference
+                from app.config import get_settings
 
-                session = MockLiteMedSAM()
+                settings = get_settings()
+                checkpoint_path = Path(settings.models_dir) / "lite_medsam.pth"
+
+                if not checkpoint_path.exists():
+                    raise ModelSchedulerError(
+                        f"LiteMedSAM checkpoint not found at {checkpoint_path}. "
+                        "Download from: https://drive.google.com/file/d/18Zed-TUTsmr2zc5CHUWd5Tu13nb6vq6z/view?usp=sharing"
+                    )
+
+                logger.info("Loading LiteMedSAM", checkpoint=str(checkpoint_path))
+                session = LiteMedSAMInference(
+                    checkpoint_path=str(checkpoint_path),
+                    device="cuda" if TORCH_AVAILABLE and torch.cuda.is_available() else "cpu",
+                )
                 self._model_instance = session
                 self._current_model = ModelType.LITEMEDSAM
                 logger.info("LiteMedSAM loaded", free_vram=f"{self._get_free_vram_gb():.1f} GB")
                 return session
+            except (ImportError, FileNotFoundError) as exc:
+                raise ModelSchedulerError(
+                    f"Failed to load LiteMedSAM: {exc}"
+                ) from exc
             except RuntimeError as exc:
                 raise ModelSchedulerError(f"Failed to load LiteMedSAM: {exc}") from exc
 
