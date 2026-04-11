@@ -1,13 +1,13 @@
 ---
 milestone: RadAI Phase 0-3
-version: 1.1.0
-updated: 2026-04-11T12:00:00Z
+version: 1.2.0
+updated: 2026-04-11T20:30:00Z
 ---
 
 # Roadmap
 
-> **Current Phase:** Phase 1 - AI Segmentation (starting)
-> **Status:** Phase 0 ✅ verified end-to-end (4/4 critical checks); Phase 1 beginning
+> **Current Phase:** Phase 1 - AI Segmentation (Plans 1.1, 1.2, 1.3 ✅)
+> **Status:** Phase 0 ✅ | Phase 1 core complete (3/7 plans done)
 
 ## Must-Haves (from SPEC)
 
@@ -20,7 +20,9 @@ updated: 2026-04-11T12:00:00Z
 - [x] WebSocket progress streaming
 - [x] Rate limiting (SlowAPI)
 - [x] Verification evidence for all components (verify_phase_0.py 4/4 green)
-- [ ] Real LiteMedSAM implementation (currently mock — Phase 1, Plan 1.1)
+- [x] Real LiteMedSAM implementation (Plan 1.1 ✅)
+- [x] E2E DICOM→NIfTI→SEG pipeline (Plan 1.2 ✅)
+- [x] OHIF AI Tools panel extension (Plan 1.3 ✅)
 
 ---
 
@@ -67,14 +69,14 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 ---
 
 ### Phase 1: AI Segmentation
-**Status:** 🟡 Starting (2026-04-11)
+**Status:** 🟢 Core Plans Complete (2026-04-11)
 **Objective:** End-to-end AI segmentation workflow with OHIF integration
 **Depends on:** Phase 0 verification ✅
 
 **Plans:**
-- [ ] Plan 1.1: Implement real LiteMedSAM (remove mock)
-- [ ] Plan 1.2: Verify DICOM → NIfTI → SEG pipeline
-- [ ] Plan 1.3: Build minimal OHIF extension (RadAI AI tools panel)
+- [x] Plan 1.1: Implement real LiteMedSAM (remove mock) ✅
+- [x] Plan 1.2: Verify DICOM → NIfTI → SEG pipeline ✅
+- [x] Plan 1.3: Build minimal OHIF extension (RadAI AI tools panel) ✅
 - [ ] Plan 1.4: Test TotalSegmentator end-to-end on real CT study
 - [ ] Plan 1.5: Add segmentation overlays to OHIF
 - [ ] Plan 1.6: Implement nodule detection heuristic (from TotalSegmentator lung ROI)
@@ -138,8 +140,8 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 
 | Phase | STATUS | Complete | Remaining |
 |-------|--------|----------|-----------|
-| 0 | ✅ Verified | 18/18 | 0 (LiteMedSAM moved to Phase 1) |
-| 1 | 🟡 Starting | 0/7 | 7 |
+| 0 | ✅ Verified | 18/18 | 0 |
+| 1 | 🟢 Core Complete | 3/7 | 4 (real CT test, overlays, nodule detection, nnInteractive) |
 | 2 | ⬜ Not Started | 0/8 | 8 |
 | 3 | ⬜ Not Started | 0/6 | 6 |
 
@@ -150,7 +152,7 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 | Phase | Started | Completed | Duration |
 |-------|---------|-----------|----------|
 | 0 | 2026-04-10 | 2026-04-11 | ~1 day |
-| 1 | 2026-04-11 | — | — |
+| 1 | 2026-04-11 | — (core done) | — |
 | 2 | — | — | — |
 | 3 | — | — | — |
 
