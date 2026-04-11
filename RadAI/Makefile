@@ -88,8 +88,12 @@ redis-cli:  ## Open redis-cli inside the redis container
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
+.PHONY: seed-admin
+seed-admin:  ## Seed or reset the default admin user (admin / changeme)
+	MSYS_NO_PATHCONV=1 $(COMPOSE) exec backend python3 /app/scripts/seed_admin.py
+
 .PHONY: verify
-verify:  ## Run Phase 0 verification script (healthchecks + connectivity)
+verify: seed-admin  ## Run Phase 0 verification script (healthchecks + connectivity)
 	$(PY_HOST) scripts/verify_phase_0.py
 
 .PHONY: verify-gpu

@@ -54,7 +54,11 @@ structlog==24.4.0
 tenacity==9.0.0
 aiofiles==24.1.0
 slowapi==0.1.9
-passlib[bcrypt]==1.7.4
+# passlib 1.7.4 is the last release and is incompatible with bcrypt>=4.1:
+# its self-test passes a >72-byte dummy password through bcrypt, which the
+# modern binding rejects with a hard ValueError on startup. Pin bcrypt<4.1.
+passlib==1.7.4
+bcrypt<4.1
 
 # ─── Metadata Agent (KeyBERT) ─────────────────────────────────────────────────
 keybert>=0.8.0
