@@ -49,13 +49,6 @@ async def _ensure_openrouter_rate_limit() -> None:
         _OPENROUTER_LAST_REQUEST_AT = time.monotonic()
 
 
-def _is_retryable_openrouter_error(exception: BaseException) -> bool:
-    if isinstance(exception, httpx.RequestError):
-        return True
-    if isinstance(exception, httpx.HTTPStatusError) and exception.response is not None:
-        return exception.response.status_code in {429, 500, 502, 503, 504}
-    return False
-
 # Try importing torch; graceful degradation when running without GPU
 try:
     import torch
