@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(docker compose ps)",
+      "Bash(curl *)",
+      "Bash(set *)",
+      "Bash(docker logs *)",
+      "Bash(docker exec *)",
+      "Bash(do *)",
+      "Bash(echo.)",
+      "Bash(ping *)",
+      "Bash(findstr *)"
+    ]
+  },
+  "$version": 3
+}

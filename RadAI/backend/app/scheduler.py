@@ -142,18 +142,21 @@ class ModelScheduler:
         """
         with self._lock:
             self.unload_current()
+            # TotalSegmentator >=2.0 removed `--gpu`. It accepts
+            # `-d {gpu|cpu|mps|gpu:X}` — *not* `cuda`. `--body_seg` was also
+            # renamed to `-bs`, and `--roi_subset` to `-rs`.
             cmd = [
                 "TotalSegmentator",
                 "-i", input_path,
                 "-o", output_path,
-                "--gpu",
+                "-d", "gpu",
             ]
             if fast:
                 cmd.append("--fast")
             if body_seg:
-                cmd.append("--body_seg")
+                cmd.append("-bs")
             if roi_subset:
-                cmd.extend(["--roi_subset"] + roi_subset)
+                cmd.extend(["-rs"] + roi_subset)
 
             logger.info("Running TotalSegmentator", cmd=" ".join(cmd))
             if progress_callback:

@@ -60,8 +60,11 @@ class RunAIRequest(BaseModel):
 @limiter.limit("5/minute")
 async def run_ai(
     study_id: UUID,
-    request: RunAIRequest,
-    http_request: Request,
+    # NOTE: slowapi's @limiter.limit looks up a parameter literally named
+    # `request` and asserts it is a starlette Request. Do NOT name the body
+    # model `request` — keep that name reserved for the Request injection.
+    request: Request,
+    body: RunAIRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
@@ -72,11 +75,11 @@ async def run_ai(
 
     job = AIJob(
         study_id=study_id,
-        job_type=request.job_type,
-        tier=request.tier,
+        job_type=body.job_type,
+        tier=body.tier,
         model_name="TotalSegmentator"
-        if request.job_type == "totalsegmentator"
-        else request.job_type,
+        if body.job_type == "totalsegmentator"
+        else body.job_type,
         status="queued",
     )
     db.add(job)
@@ -84,10 +87,12 @@ async def run_ai(
     await db.commit()
     await db.refresh(job)
 
-    if request.job_type == "totalsegmentator":
-        background_tasks.add_task(run_totalsegmentator_job, job.id, study_id, request.roi_subset, request.fast)
-    elif request.job_type == "nninteractive":
-        background_tasks.add_task(run_nninteractive_job, job.id, study_id, request.clicks)
+    if body.job_type == "totalsegmentator":
+        background_tasks.add_task(
+            run_totalsegmentator_job, job.id, study_id, body.roi_subset, body.fast
+        )
+    elif body.job_type == "nninteractive":
+        background_tasks.add_task(run_nninteractive_job, job.id, study_id, body.clicks)
 
     return job
 
