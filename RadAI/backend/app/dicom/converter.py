@@ -100,6 +100,35 @@ def nifti_to_dicom_seg(
         reader = sitk.ImageSeriesReader()
         dicom_files = reader.GetGDCMSeriesFileNames(str(reference_dicom_dir))
         source_datasets = [pydicom.dcmread(f) for f in dicom_files]
+
+        # Ensure required DICOM attributes exist for highdicom Segmentation
+        # Synthetic or minimal DICOMs may lack these; highdicom validates them.
+        import datetime as _dt
+        for ds in source_datasets:
+            if not hasattr(ds, "StudyDate"):
+                ds.StudyDate = _dt.date.today().strftime("%Y%m%d")
+            if not hasattr(ds, "StudyTime"):
+                ds.StudyTime = _dt.datetime.now().strftime("%H%M%S.%f")
+            if not hasattr(ds, "Modality"):
+                ds.Modality = "CT"
+            if not hasattr(ds, "Manufacturer"):
+                ds.Manufacturer = "Unknown"
+            if not hasattr(ds, "InstitutionName"):
+                ds.InstitutionName = ""
+            if not hasattr(ds, "ReferringPhysicianName"):
+                ds.ReferringPhysicianName = ""
+            if not hasattr(ds, "PatientName"):
+                ds.PatientName = "Anonymous"
+            if not hasattr(ds, "PatientID"):
+                ds.PatientID = "UNKNOWN"
+            if not hasattr(ds, "PatientBirthDate"):
+                ds.PatientBirthDate = ""
+            if not hasattr(ds, "PatientSex"):
+                ds.PatientSex = ""
+            if not hasattr(ds, "AccessionNumber"):
+                ds.AccessionNumber = ""
+            if not hasattr(ds, "StudyID"):
+                ds.StudyID = "1"
         
         # 2. Load the NIfTI mask image
         mask_image = sitk.ReadImage(str(nifti_mask_path))
@@ -115,9 +144,16 @@ def nifti_to_dicom_seg(
             pixel_array=mask_array.astype(bool),
             segmentation_type="BINARY",
             segment_descriptions=[segment_description],
-            series_description=series_description,
+            series_instance_uid=pydicom.uid.generate_uid(),
             series_number=500,  # Conventional start for segments
             sop_instance_uid=pydicom.uid.generate_uid(),
+            instance_number=1,
+            manufacturer="RadAI",
+            manufacturer_model_name="RadAI Segmentation Pipeline v0.1",
+            software_versions="0.1.0",
+            device_serial_number="RADAI-SEG-001",
+            series_description=series_description,
+            content_description=f"AI-generated segmentation: {structure_name}",
         )
 
         seg_instance.save_as(str(output_path))

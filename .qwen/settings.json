@@ -10,7 +10,8 @@
       "Bash(do *)",
       "Bash(echo.)",
       "Bash(ping *)",
-      "Bash(findstr *)"
+      "Bash(findstr *)",
+      "Bash(timeout *)"
     ]
   },
   "$version": 3
