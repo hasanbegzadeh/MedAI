@@ -3,9 +3,9 @@
 ## Current Position
 
 **Milestone:** RadAI Phase 0-3
-**Phase:** Phase 1 - AI Segmentation (Plan 1.2 ✅ COMPLETE)
-**Status:** Plan 1.2 verified ✅ | Plan 1.1 and 1.3 next
-**Plan:** Execute Plan 1.1 (real LiteMedSAM) → Plan 1.3 (OHIF extension)
+**Phase:** Phase 1 - AI Segmentation (Plans 1.1 ✅, 1.2 ✅ COMPLETE)
+**Status:** Plans 1.1 + 1.2 verified ✅ | Plan 1.3 next
+**Plan:** Execute Plan 1.3 (OHIF extension)
 
 ## Last Action
 
@@ -31,9 +31,9 @@ End-to-end TotalSegmentator workflow confirmed working:
 
 | Plan | Status | Notes |
 |------|--------|-------|
-| 1.1 LiteMedSAM real impl | ⬜ Pending | Next priority |
+| 1.1 LiteMedSAM real impl | ✅ COMPLETE | Real TinyViT model, needs checkpoint download |
 | 1.2 E2E SEG pipeline | ✅ COMPLETE | Verified with synthetic CT |
-| 1.3 OHIF extension | ⬜ Pending | After Plan 1.1 |
+| 1.3 OHIF extension | 🟡 In Progress | Next |
 | 1.4 TotalSegmentator real CT | ⬜ Pending | Needs real CT dataset |
 | 1.5 SEG overlays in OHIF | ⬜ Pending | Depends on 1.3 |
 | 1.6 Nodule detection | ⬜ Pending | |
@@ -55,6 +55,6 @@ End-to-end TotalSegmentator workflow confirmed working:
 
 ## Next Actions
 
-1. **Plan 1.1** — Replace LiteMedSAM mock with real SAM checkpoint implementation
-2. **Plan 1.3** — Build OHIF custom extension (AI tools panel)
-3. **Plan 1.4** — Test with real CT dataset (NSCLC-Radiomics or similar)
+1. **Plan 1.3** — Build OHIF custom extension (AI tools panel)
+2. **Plan 1.4** — Test with real CT dataset (NSCLC-Radiomics or similar)
+3. **Download LiteMedSAM checkpoint** → `backend/models/lite_medsam.pth`

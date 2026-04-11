@@ -1,7 +1,12 @@
 window.config = {
   routerBasename: '/',
   showStudyList: true,
-  extensions: [],
+  extensions: [
+    {
+      id: '@radai/extension-ai-panel',
+      scriptUrl: '/radai-extensions/inject-panel.html',
+    },
+  ],
   modes: [],
 
   defaultDataSourceName: 'dicomweb',
@@ -34,8 +39,9 @@ window.config = {
     },
   ],
 
-  // RadAI Backend API
+  // RadAI Backend API integration
   customizationService: {
+    // RadAI AI Tools panel will be injected via extension script
     '@ohif/customization-service.globalSidePanel': {
       rightPanels: [
         '@ohif/extension-cornerstone-dicom-sr.panelModule.panelSRSeriesList',
@@ -43,6 +49,9 @@ window.config = {
       ],
     },
   },
+
+  // RadAI Backend URL (used by custom extension)
+  radaiApiUrl: '/api/v1',
 
   hotkeys: [
     { commandName: 'incrementActiveViewport', label: 'Next Viewport', keys: ['right'] },
