@@ -71,7 +71,9 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
-app.add_middleware(SlowAPIMiddleware, limiter=limiter)
+# SlowAPIMiddleware reads the limiter from app.state.limiter — do not pass it
+# as a kwarg (BaseHTTPMiddleware does not accept extra keyword arguments).
+app.add_middleware(SlowAPIMiddleware)
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # ─── CORS ────────────────────────────────────────────────────────────────────

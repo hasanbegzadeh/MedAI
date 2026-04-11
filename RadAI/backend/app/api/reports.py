@@ -1,6 +1,9 @@
 """RadAI — Reports API router."""
 
-from __future__ import annotations
+# NOTE: do NOT add `from __future__ import annotations` here. See app/api/ai.py
+# for the full explanation — slowapi's @limiter.limit decorator swaps out the
+# wrapped function's __globals__, so PEP 563 stringified annotations cannot
+# resolve module-level names like `UUID` at FastAPI schema-build time.
 
 from uuid import UUID
 

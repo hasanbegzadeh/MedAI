@@ -1,8 +1,12 @@
 """RadAI — Voice transcription API router."""
 
-from __future__ import annotations
+# NOTE: do NOT add `from __future__ import annotations` here. See app/api/ai.py
+# for the full explanation — slowapi's @limiter.limit decorator swaps out the
+# wrapped function's __globals__, so PEP 563 stringified annotations cannot
+# resolve module-level names like `UploadFile` or `User` at FastAPI schema-
+# build time.
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
 from app.auth import get_current_user
 from app.db.models import User
 from app.rate_limiter import limiter
@@ -25,6 +29,7 @@ class TranscriptionOut(BaseModel):
 )
 @limiter.limit("5/minute")
 async def transcribe(
+    request: Request,  # required by slowapi @limiter.limit to read client IP
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
 ) -> TranscriptionOut:

@@ -1,6 +1,11 @@
 """RadAI — AI inference API router."""
 
-from __future__ import annotations
+# NOTE: do NOT add `from __future__ import annotations` here. The slowapi
+# `@limiter.limit` decorator wraps the endpoint and replaces its __globals__
+# with slowapi's own module globals. Combined with PEP 563 stringified
+# annotations, FastAPI/pydantic cannot then resolve `UUID` (or any other
+# module-level import) when building the request model, and blows up at
+# import time with `NameError: name 'UUID' is not defined`.
 
 import datetime
 from typing import Literal
