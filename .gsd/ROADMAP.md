@@ -1,13 +1,13 @@
 ---
 milestone: RadAI Phase 0-3
-version: 1.2.0
-updated: 2026-04-11T20:30:00Z
+version: 1.3.0
+updated: 2026-04-11T21:00:00Z
 ---
 
 # Roadmap
 
-> **Current Phase:** Phase 1 - AI Segmentation (Plans 1.1, 1.2, 1.3 ✅)
-> **Status:** Phase 0 ✅ | Phase 1 core complete (3/7 plans done)
+> **Current Phase:** Phase 1 - AI Segmentation (6/7 ✅ COMPLETE)
+> **Status:** Phase 0 ✅ | Phase 1 substantially complete | Ready for Phase 2
 
 ## Must-Haves (from SPEC)
 
@@ -69,7 +69,7 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 ---
 
 ### Phase 1: AI Segmentation
-**Status:** 🟢 Core Plans Complete (2026-04-11)
+**Status:** 🟢 Substantially Complete (2026-04-11)
 **Objective:** End-to-end AI segmentation workflow with OHIF integration
 **Depends on:** Phase 0 verification ✅
 
@@ -77,10 +77,10 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 - [x] Plan 1.1: Implement real LiteMedSAM (remove mock) ✅
 - [x] Plan 1.2: Verify DICOM → NIfTI → SEG pipeline ✅
 - [x] Plan 1.3: Build minimal OHIF extension (RadAI AI tools panel) ✅
-- [ ] Plan 1.4: Test TotalSegmentator end-to-end on real CT study
-- [ ] Plan 1.5: Add segmentation overlays to OHIF
-- [ ] Plan 1.6: Implement nodule detection heuristic (from TotalSegmentator lung ROI)
-- [ ] Plan 1.7: Test nnInteractive interactive refinement workflow
+- [ ] Plan 1.4: Test TotalSegmentator end-to-end on real CT study (external dataset needed)
+- [x] Plan 1.5: Add segmentation overlays to OHIF ✅
+- [x] Plan 1.6: Implement nodule detection heuristic ✅
+- [x] Plan 1.7: Test nnInteractive interactive refinement workflow ✅
 
 **Verification Criteria:**
 - Upload DICOM → run TotalSegmentator → see segmentation in OHIF
@@ -141,7 +141,7 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 | Phase | STATUS | Complete | Remaining |
 |-------|--------|----------|-----------|
 | 0 | ✅ Verified | 18/18 | 0 |
-| 1 | 🟢 Core Complete | 3/7 | 4 (real CT test, overlays, nodule detection, nnInteractive) |
+| 1 | 🟢 Substantially Complete | 6/7 | 1 (real CT test — external) |
 | 2 | ⬜ Not Started | 0/8 | 8 |
 | 3 | ⬜ Not Started | 0/6 | 6 |
 
@@ -152,7 +152,7 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 | Phase | Started | Completed | Duration |
 |-------|---------|-----------|----------|
 | 0 | 2026-04-10 | 2026-04-11 | ~1 day |
-| 1 | 2026-04-11 | — (core done) | — |
+| 1 | 2026-04-11 | 2026-04-11 | ~1 day |
 | 2 | — | — | — |
 | 3 | — | — | — |
 
