@@ -14,6 +14,9 @@ Supports two modes:
      viewer when you do not yet have sample data on disk:
        python scripts/upload_test_dicom.py --synthetic
 
+  3. Download a real lung CT from TCIA and upload it:
+       python scripts/upload_test_dicom.py --tcia
+
 The script uses the Orthanc REST API POST /instances with basic auth.
 Credentials and base URL come from environment variables (or CLI flags):
 
@@ -198,19 +201,46 @@ def main() -> int:
         help="Generate and upload a small synthetic CT study",
     )
     parser.add_argument(
+        "--tcia",
+        action="store_true",
+        help="Download a real lung CT from TCIA and upload it",
+    )
+    parser.add_argument(
         "--orthanc-url",
         default=os.environ.get("ORTHANC_URL", "https://localhost/orthanc"),
     )
     parser.add_argument("--user", default=os.environ.get("ORTHANC_USER", "orthanc"))
     parser.add_argument("--password", default=os.environ.get("ORTHANC_PASSWORD", "orthanc"))
     parser.add_argument("--synthetic-dir", default="./temp-synthetic-dicom")
+    parser.add_argument("--tcia-dir", default="./real-ct-data")
     args = parser.parse_args()
 
     print(f"{C.B}== RadAI DICOM Upload =={C.E}")
     print(f"Target: {args.orthanc_url}")
 
     # Determine the file list
-    if args.synthetic or not args.path:
+    if args.tcia:
+        tcia_dir = Path(args.tcia_dir)
+        existing = list(tcia_dir.glob("*.dcm")) + [
+            f for f in tcia_dir.glob("*") if f.is_file() and f.suffix == ""
+        ]
+        if len(existing) < 10:
+            print(f"Downloading real CT from TCIA to {tcia_dir} ...")
+            try:
+                from download_tcia_ct import find_and_download
+                with httpx.Client(timeout=60) as dl_client:
+                    existing = find_and_download(
+                        dl_client, "NSCLC-Radiomics", "LUNG1-001", tcia_dir, 150
+                    )
+            except ImportError:
+                fail("download_tcia_ct.py not found — run from RadAI/scripts/")
+                return 1
+        if not existing:
+            fail("No DICOM files available")
+            return 1
+        files = existing
+        ok(f"Using {len(files)} real CT DICOM files")
+    elif args.synthetic or not args.path:
         print(f"Generating synthetic CT in {args.synthetic_dir} ...")
         files = generate_synthetic_ct(Path(args.synthetic_dir))
         ok(f"Generated {len(files)} synthetic DICOM slices")

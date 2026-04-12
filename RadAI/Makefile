@@ -108,6 +108,22 @@ smoke:  ## Run backend API smoke test (login, health, study list)
 upload-sample:  ## Upload a sample DICOM study to Orthanc for testing
 	$(PY_HOST) scripts/upload_test_dicom.py
 
+.PHONY: upload-real-ct
+upload-real-ct:  ## Download real CT from TCIA and upload to Orthanc
+	$(PY_HOST) scripts/upload_test_dicom.py --tcia
+
+.PHONY: download-real-ct
+download-real-ct:  ## Download real CT from TCIA (no upload)
+	$(PY_HOST) scripts/download_tcia_ct.py
+
+.PHONY: verify-real-ct
+verify-real-ct: seed-admin  ## Run Plan 1.4: full E2E with real CT (download + TotalSeg + nodules)
+	$(PY_HOST) scripts/verify_real_ct_e2e.py
+
+.PHONY: verify-e2e
+verify-e2e: seed-admin  ## Run Plan 1.2: E2E segmentation with synthetic CT
+	$(PY_HOST) scripts/verify_e2e_segmentation.py
+
 # ─── Database migrations ─────────────────────────────────────────────────────
 
 .PHONY: migrate

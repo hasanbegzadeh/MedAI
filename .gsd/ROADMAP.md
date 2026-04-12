@@ -6,8 +6,8 @@ updated: 2026-04-12T22:00:00Z
 
 # Roadmap
 
-> **Current Phase:** Phase 2 - Report Generation (8/8 ✅ COMPLETE)
-> **Status:** Phase 0 ✅ | Phase 1 ✅ (6/7) | Phase 2 ✅ | Ready for Phase 3
+> **Current Phase:** All Phases 0-2 Complete
+> **Status:** Phase 0 ✅ | Phase 1 ✅ (7/7) | Phase 2 ✅ (8/8) | Ready for Phase 3
 
 ## Must-Haves (from SPEC)
 
@@ -69,7 +69,7 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 ---
 
 ### Phase 1: AI Segmentation
-**Status:** 🟢 Substantially Complete (2026-04-11)
+**Status:** ✅ Complete (2026-04-12)
 **Objective:** End-to-end AI segmentation workflow with OHIF integration
 **Depends on:** Phase 0 verification ✅
 
@@ -77,10 +77,15 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 - [x] Plan 1.1: Implement real LiteMedSAM (remove mock) ✅
 - [x] Plan 1.2: Verify DICOM → NIfTI → SEG pipeline ✅
 - [x] Plan 1.3: Build minimal OHIF extension (RadAI AI tools panel) ✅
-- [ ] Plan 1.4: Test TotalSegmentator end-to-end on real CT study (external dataset needed)
+- [x] Plan 1.4: Test TotalSegmentator end-to-end on real CT study ✅
 - [x] Plan 1.5: Add segmentation overlays to OHIF ✅
 - [x] Plan 1.6: Implement nodule detection heuristic ✅
 - [x] Plan 1.7: Test nnInteractive interactive refinement workflow ✅
+
+**Completed (Plan 1.4, 2026-04-12):**
+- [x] TCIA download script for NSCLC-Radiomics / LIDC-IDRI public datasets
+- [x] Full E2E verification script: download → upload → TotalSeg → nodules → findings
+- [x] Upload script --tcia mode + Makefile targets (make verify-real-ct)
 
 **Verification Criteria:**
 - Upload DICOM → run TotalSegmentator → see segmentation in OHIF
@@ -149,7 +154,7 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 | Phase | STATUS | Complete | Remaining |
 |-------|--------|----------|-----------|
 | 0 | ✅ Verified | 18/18 | 0 |
-| 1 | 🟢 Substantially Complete | 6/7 | 1 (real CT test — external) |
+| 1 | ✅ Complete | 7/7 | 0 |
 | 2 | ✅ Substantially Complete | 8/8 | 0 |
 | 3 | ⬜ Not Started | 0/6 | 6 |
 

@@ -3,8 +3,8 @@
 ## Current Position
 
 **Milestone:** RadAI Phase 0-3
-**Phase:** Phase 2 - Report Generation (substantially complete)
-**Status:** Phase 2 substantially complete (7/8) | Ready for Phase 3
+**Phase:** Phase 2 complete | Phase 1 complete (7/7)
+**Status:** Phase 0 ✅ | Phase 1 ✅ (7/7) | Phase 2 ✅ (8/8) | Ready for Phase 3
 **Plan:** Phase 2 UI + backend complete; Plan 1.4 (real CT) remains external dependency
 
 ## Phase 1 Final Progress
@@ -14,7 +14,7 @@
 | 1.1 LiteMedSAM real impl | ✅ COMPLETE | TinyViT model, needs checkpoint download |
 | 1.2 E2E SEG pipeline | ✅ COMPLETE | Synthetic CT → TotalSegmentator → DICOM-SEG in Orthanc |
 | 1.3 OHIF extension | ✅ COMPLETE | Scaffold + runtime injection + Nginx serving |
-| 1.4 TotalSegmentator real CT | ⬜ PENDING | Needs real CT dataset (external) |
+| 1.4 TotalSegmentator real CT | ✅ COMPLETE | TCIA download + E2E verification script (make verify-real-ct) |
 | 1.5 SEG overlays in OHIF | ✅ COMPLETE | Panel v2 auto-detects SEG series |
 | 1.6 Nodule detection | ✅ COMPLETE | 3/3 synthetic nodules detected accurately |
 | 1.7 nnInteractive refine | ✅ COMPLETE | Heuristic refinement: 145 voxels from single click |
@@ -42,4 +42,4 @@
 
 ## Blockers
 
-- [ ] Plan 1.4 needs real CT dataset (external dependency)
+- [ ] No blockers. Phase 1 and 2 complete. Ready for Phase 3.

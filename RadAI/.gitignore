@@ -27,7 +27,9 @@ ENV/
 *.mha
 *.mhd
 data/
+real-ct-data/
 temp-processing/
+temp-synthetic-dicom/
 dicom-storage/
 
 # ─── Model Weights (too large for git) ──────────────────
