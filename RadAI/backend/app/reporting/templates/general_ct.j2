@@ -1,0 +1,63 @@
+{# General CT/MRI Structured Report Template #}
+CT {{ body_part | default("REGION") }} {{ technique | default("with and without intravenous contrast") }}
+
+EXAMINATION TYPE:
+CT of the {{ body_part | default("region") }}.
+
+CLINICAL INDICATION:
+{{ clinical_indication | default("Clinical evaluation") }}.
+
+TECHNIQUE:
+{{ technique_description | default("Multiphasic CT imaging was performed. Multiplanar reformatted images were generated.") }}
+
+COMPARISON:
+{{ comparison | default("None available") }}.
+
+FINDINGS:
+
+{% if findings_by_region %}
+{% for region, findings in findings_by_region.items() %}
+{{ region | upper }}:
+{% for finding in findings %}
+- {{ finding.description }}
+{% if finding.measurements.longest_diameter_mm %}  Size: {{ finding.measurements.longest_diameter_mm }} mm.{% endif %}
+{% if finding.measurements.volume_mm3 %}  Volume: {{ "%.1f"|format(finding.measurements.volume_mm3) }} mm³.{% endif %}
+{% if finding.measurements.mean_hu is not none %}  HU: {{ finding.measurements.mean_hu }}.{% endif %}
+{% endfor %}
+
+{% endfor %}
+{% else %}
+No significant abnormalities identified.
+{% endif %}
+
+{% if ai_findings %}
+AI-DETECTED FINDINGS:
+{% for ai in ai_findings %}
+- {{ ai.location | default("Unspecified") }}: {{ ai.finding_type }}, {{ "%.1f"|format(ai.diameter_mm) }} mm (confidence: {{ "%.0f"|format(ai.confidence * 100) }}%)
+{% endfor %}
+{% endif %}
+
+IMPRESSION:
+
+{% if impression_text %}
+{{ impression_text }}
+{% else %}
+Findings as described above.
+{% endif %}
+
+{% if recommendations %}
+
+RECOMMENDATIONS:
+{% for rec in recommendations %}
+- {{ rec }}
+{% endfor %}
+{% endif %}
+
+{% if ai_disclaimer %}
+---
+{{ ai_disclaimer }}
+{% else %}
+---
+NOTE: This report was generated with assistance from AI-based image analysis (RadAI v0.1.0).
+All findings have been reviewed and confirmed by the interpreting radiologist.
+{% endif %}

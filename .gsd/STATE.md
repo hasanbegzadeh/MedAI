@@ -3,9 +3,9 @@
 ## Current Position
 
 **Milestone:** RadAI Phase 0-3
-**Phase:** Phase 1 - AI Segmentation (6/7 plans ✅ COMPLETE, 1/7 pending)
-**Status:** Phase 1 substantially complete | Remaining: 1.4 (real CT dataset)
-**Plan:** Move to Phase 2 (Report Generation) or test with real CT data
+**Phase:** Phase 2 - Report Generation (starting)
+**Status:** Phase 1 substantially complete (6/7 ✅) | Phase 2 beginning
+**Plan:** Execute Phase 2 plans: template engine → DICOM-SR → PDF export → voice dictation
 
 ## Phase 1 Final Progress
 
@@ -19,32 +19,27 @@
 | 1.6 Nodule detection | ✅ COMPLETE | 3/3 synthetic nodules detected accurately |
 | 1.7 nnInteractive refine | ✅ COMPLETE | Heuristic refinement: 145 voxels from single click |
 
-## Commits This Session (Phase 1)
+## Phase 2 Plans (Report Generation)
 
-| Commit | Description |
-|--------|-------------|
-| `af1905a` | fix: highdicom API compatibility |
-| `cfcf99d` | fix: E2E DICOM→NIfTI→SEG pipeline (3 bugs) |
-| `8b8a089` | feat: real LiteMedSAM inference |
-| `e71101d` | feat: OHIF AI Tools panel scaffold |
-| `2f34eab` | feat: lung nodule detection heuristic |
-| `4821db6` | feat: SEG overlay detection + nnInteractive click-refine |
+| Plan | Status | Description |
+|------|--------|-------------|
+| 2.1 Findings panel UI | ⬜ Pending | OHIF panel for accept/reject/modify |
+| 2.2 Jinja2 template engine | 🟡 Next | Lung-RADS, BI-RADS, general CT templates |
+| 2.3 Ollama report polishing | ⬜ Pending | MedGemma 1.5 4B for language polish |
+| 2.4 Voice dictation | ⬜ Pending | faster-whisper speech-to-text |
+| 2.5 OHIF reporting panel | ⬜ Pending | Report review UI |
+| 2.6 DICOM-SR generation | ⬜ Pending | Structured report export to PACS |
+| 2.7 PDF report export | ⬜ Pending | Template-based PDF generation |
+| 2.8 E2E report workflow | ⬜ Pending | Full test of report pipeline |
 
 ## Active Decisions
 
 | Decision | Choice | Affects |
 |----------|--------|---------|
-| nnInteractive fallback | Heuristic region-growing when model unavailable | Always works, degrades gracefully |
-| Nodule detection | Connected-component analysis (not ML model) | Phase 1 prototype, upgrade to MONAI later |
-| OHIF extension | Runtime injection (no rebuild) | Fast iteration, documented build path |
-| highdicom API | AlgorithmIdentificationSequence required | seg_export.py, converter.py |
+| Phase 2 order | Backend first (templates, DICOM-SR, PDF) then UI | Fastest verification path |
+| Template engine | Jinja2 with Lung-RADS standard | Industry standard for lung cancer screening |
+| DICOM-SR library | highdicom (already installed) | Same library used for DICOM-SEG |
 
 ## Blockers
 
-- [ ] No blockers. All Phase 1 plans either complete or blocked on external resources.
-
-## Next Actions
-
-1. **Phase 2** — Report Generation (findings panel, templates, voice dictation, DICOM-SR)
-2. **Optional** — Test with real CT dataset when available (NSCLC-Radiomics)
-3. **Manual** — Download LiteMedSAM checkpoint from Google Drive
+- [ ] No blockers.
