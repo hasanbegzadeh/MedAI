@@ -1,16 +1,18 @@
-"""RadAI — Voice transcription API router."""
+"""RadAI — Voice transcription API router.
+
+Uses the model scheduler for VRAM-safe Whisper loading, ensuring
+no other GPU model is loaded while transcribing.
+"""
 
 # NOTE: do NOT add `from __future__ import annotations` here. See app/api/ai.py
-# for the full explanation — slowapi's @limiter.limit decorator swaps out the
-# wrapped function's __globals__, so PEP 563 stringified annotations cannot
-# resolve module-level names like `UploadFile` or `User` at FastAPI schema-
-# build time.
+# for the full explanation — slowapi's @limiter.limit decorator requires
+# non-stringified annotations for FastAPI schema resolution.
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, status
 from app.auth import get_current_user
 from app.db.models import User
 from app.rate_limiter import limiter
-from app.reporting.voice_transcription import transcribe_audio, TranscriptionError
+from app.scheduler import get_scheduler, ModelSchedulerError
 from pydantic import BaseModel
 import structlog
 
@@ -34,18 +36,17 @@ async def transcribe(
     current_user: User = Depends(get_current_user),
 ) -> TranscriptionOut:
     """
-    Accepts an audio file (WAV, MP3, etc.) and returns the transcribed medical text.
+    Accepts an audio file (WAV, MP3, WebM, etc.) and returns the transcribed
+    medical text. Uses faster-whisper via the model scheduler to ensure
+    VRAM is freed from other models before loading Whisper.
     """
     try:
-        # Read file content
         audio_bytes = await file.read()
-        
-        # Perform transcription
-        text = await transcribe_audio(audio_bytes)
-        
+        scheduler = get_scheduler()
+        text = await scheduler.transcribe_audio(audio_bytes)
         return TranscriptionOut(text=text)
-    except TranscriptionError as exc:
-        logger.error(f"Transcription API failed: {exc}")
+    except ModelSchedulerError as exc:
+        logger.error(f"Transcription failed: {exc}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc)

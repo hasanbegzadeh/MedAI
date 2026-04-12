@@ -62,6 +62,7 @@ class ModelType(str, Enum):
     TOTALSEGMENTATOR = "totalsegmentator"
     NNINTERACTIVE = "nninteractive"
     LITEMEDSAM = "litemedsam"
+    WHISPER = "whisper"
     NONE = "none"
 
 
@@ -257,6 +258,118 @@ class ModelScheduler:
                 ) from exc
             except RuntimeError as exc:
                 raise ModelSchedulerError(f"Failed to load LiteMedSAM: {exc}") from exc
+
+    def load_whisper(self) -> object:
+        """Load faster-whisper model (~3 GB VRAM for large-v3).
+
+        Unloads any current GPU model first to free VRAM.
+
+        Returns:
+            WhisperModel instance.
+
+        Raises:
+            ModelSchedulerError: If faster-whisper cannot be loaded.
+        """
+        with self._lock:
+            if self._current_model == ModelType.WHISPER:
+                logger.debug("Whisper already loaded")
+                return self._model_instance  # type: ignore[return-value]
+
+            self.unload_current()
+            try:
+                from faster_whisper import WhisperModel
+
+                # Try large-v3 (best for medical terminology)
+                try:
+                    model = WhisperModel(
+                        "large-v3", device="cuda", compute_type="float16",
+                    )
+                    logger.info("Loaded faster-whisper large-v3 (CUDA)")
+                except Exception:
+                    model = WhisperModel(
+                        "medium", device="cuda", compute_type="float16",
+                    )
+                    logger.info("Loaded faster-whisper medium (CUDA fallback)")
+
+                self._model_instance = model
+                self._current_model = ModelType.WHISPER
+                logger.info("Whisper loaded", free_vram=f"{self._get_free_vram_gb():.1f} GB")
+                return model
+            except ImportError as exc:
+                raise ModelSchedulerError(
+                    "faster-whisper is not installed. Run: pip install faster-whisper"
+                ) from exc
+            except Exception as exc:
+                # CPU fallback
+                try:
+                    from faster_whisper import WhisperModel
+                    model = WhisperModel("medium", device="cpu", compute_type="int8")
+                    self._model_instance = model
+                    self._current_model = ModelType.WHISPER
+                    logger.warning("Loaded faster-whisper medium (CPU, slow)")
+                    return model
+                except Exception:
+                    raise ModelSchedulerError(f"Failed to load Whisper: {exc}") from exc
+
+    async def transcribe_audio(self, audio_data: bytes, language: str = "en") -> str:
+        """Transcribe audio using faster-whisper with VRAM-safe loading.
+
+        Coordinates with the model scheduler to unload any other GPU model
+        before loading Whisper, ensuring VRAM budget compliance.
+
+        Args:
+            audio_data: Raw audio bytes (WAV, MP3, FLAC, etc.)
+            language: ISO 639-1 language code.
+
+        Returns:
+            Transcribed text string.
+
+        Raises:
+            ModelSchedulerError: On transcription failure.
+        """
+        import tempfile
+        from pathlib import Path
+
+        model = self.load_whisper()
+
+        initial_prompt = (
+            "Radiology report dictation. Medical terminology including: "
+            "nodule, spiculated, ground-glass opacity, consolidation, "
+            "pleural effusion, cardiomegaly, lymphadenopathy."
+        )
+
+        try:
+            # Write audio to temp file
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                f.write(audio_data)
+                tmp_path = f.name
+
+            loop = asyncio.get_event_loop()
+            segments, info = await loop.run_in_executor(
+                None,
+                lambda: model.transcribe(
+                    tmp_path,
+                    language=language,
+                    initial_prompt=initial_prompt,
+                    vad_filter=True,
+                    word_timestamps=False,
+                ),
+            )
+
+            text_parts = [segment.text.strip() for segment in segments]
+            Path(tmp_path).unlink(missing_ok=True)
+
+            result = " ".join(text_parts)
+            logger.info(
+                "Transcription complete",
+                chars=len(result),
+                language=info.language,
+                duration=f"{info.duration:.1f}s",
+            )
+            return result
+
+        except Exception as exc:
+            raise ModelSchedulerError(f"Transcription failed: {exc}") from exc
 
     async def generate_report_local(
         self, findings_text: str, model: Optional[str] = None

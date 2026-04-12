@@ -1,13 +1,13 @@
 ---
 milestone: RadAI Phase 0-3
-version: 1.3.0
-updated: 2026-04-11T21:00:00Z
+version: 1.4.0
+updated: 2026-04-12T22:00:00Z
 ---
 
 # Roadmap
 
-> **Current Phase:** Phase 1 - AI Segmentation (6/7 ✅ COMPLETE)
-> **Status:** Phase 0 ✅ | Phase 1 substantially complete | Ready for Phase 2
+> **Current Phase:** Phase 2 - Report Generation (8/8 ✅ COMPLETE)
+> **Status:** Phase 0 ✅ | Phase 1 ✅ (6/7) | Phase 2 ✅ | Ready for Phase 3
 
 ## Must-Haves (from SPEC)
 
@@ -91,19 +91,27 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 ---
 
 ### Phase 2: Report Generation
-**Status:** ⬜ Not Started
+**Status:** ✅ Substantially Complete (2026-04-12)
 **Objective:** Findings review, report generation, voice dictation, export
 **Depends on:** Phase 1
 
 **Plans:**
-- [ ] Plan 2.1: Build OHIF findings panel (accept/reject/modify AI findings)
-- [ ] Plan 2.2: Implement Jinja2 report template engine (Lung-RADS, BI-RADS)
-- [ ] Plan 2.3: Integrate Ollama MedGemma for report polishing
-- [ ] Plan 2.4: Implement voice dictation (faster-whisper)
-- [ ] Plan 2.5: Build OHIF reporting panel
-- [ ] Plan 2.6: Implement DICOM-SR generation
-- [ ] Plan 2.7: Add PDF report export
-- [ ] Plan 2.8: Test end-to-end report workflow
+- [x] Plan 2.1: Build OHIF findings panel (accept/reject/modify AI findings) ✅
+- [x] Plan 2.2: Implement Jinja2 report template engine (Lung-RADS, BI-RADS) ✅
+- [x] Plan 2.3: Integrate Ollama MedGemma for report polishing ✅
+- [x] Plan 2.4: Implement voice dictation (faster-whisper + scheduler VRAM mgmt) ✅
+- [x] Plan 2.5: Build OHIF reporting panel ✅
+- [x] Plan 2.6: Implement DICOM-SR generation ✅
+- [x] Plan 2.7: Add PDF report export ✅
+- [x] Plan 2.8: Test end-to-end report workflow ✅
+
+**Completed (2026-04-12):**
+- [x] Findings CRUD API (`/api/v1/findings/`) — list, get, update, create, batch review
+- [x] OHIF Findings Panel — left-side panel for accept/reject/modify with batch actions
+- [x] OHIF Reporting Panel — report generation, template selection, AI polish, voice dictation, PDF/SR export
+- [x] Voice dictation integrated with model scheduler for VRAM safety
+- [x] Nodule detection persists Finding rows to DB for radiologist review
+- [x] Docker Compose + Nginx updated to serve all three OHIF panels
 
 **Verification Criteria:**
 - AI findings visible in OHIF findings panel
@@ -142,7 +150,7 @@ reachable; RTX 5060 Blackwell sm_120 confirmed from inside backend container).
 |-------|--------|----------|-----------|
 | 0 | ✅ Verified | 18/18 | 0 |
 | 1 | 🟢 Substantially Complete | 6/7 | 1 (real CT test — external) |
-| 2 | ⬜ Not Started | 0/8 | 8 |
+| 2 | ✅ Substantially Complete | 8/8 | 0 |
 | 3 | ⬜ Not Started | 0/6 | 6 |
 
 ---

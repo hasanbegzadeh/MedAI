@@ -173,6 +173,8 @@ services:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/ssl:/etc/nginx/ssl:ro
       - ./viewer/extensions/radai-ai-tools/dist:/etc/nginx/radai-extensions:ro
+      - ./viewer/extensions/radai-findings-panel/dist:/etc/nginx/radai-findings:ro
+      - ./viewer/extensions/radai-reporting-panel/dist:/etc/nginx/radai-reporting:ro
     depends_on:
       - ohif
       - orthanc

@@ -172,14 +172,36 @@ async def run_nodule_detection_from_study(job_id: UUID, study_id: UUID):
             ],
         }
 
-        # Update job
+        # Update job and persist findings to DB
         async with AsyncSessionLocal() as db:
+            from app.db.models import Finding
+
             job = await db.get(AIJob, job_id)
             if job:
                 job.status = "completed"
                 job.progress_pct = 100
                 job.result_json = results
                 job.completed_at = datetime.datetime.now(datetime.UTC)
+
+                # Create Finding rows for radiologist review
+                for c in candidates:
+                    finding = Finding(
+                        study_id=study_id,
+                        ai_job_id=job_id,
+                        finding_type="nodule",
+                        location=c.location,
+                        laterality=c.laterality,
+                        measurements={
+                            "longest_diameter_mm": c.diameter_mm,
+                            "volume_mm3": c.volume_mm3,
+                            "mean_hu": c.mean_hu,
+                        },
+                        characteristics=[c.lobe] if c.lobe else [],
+                        confidence=c.confidence,
+                        status="pending",
+                    )
+                    db.add(finding)
+
                 await db.commit()
 
         await manager.send_complete(

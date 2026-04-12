@@ -6,6 +6,14 @@ window.config = {
       id: '@radai/extension-ai-panel',
       scriptUrl: '/radai-extensions/inject-panel.html',
     },
+    {
+      id: '@radai/extension-findings-panel',
+      scriptUrl: '/radai-findings/inject-panel.html',
+    },
+    {
+      id: '@radai/extension-reporting-panel',
+      scriptUrl: '/radai-reporting/inject-panel.html',
+    },
   ],
   modes: [],
 

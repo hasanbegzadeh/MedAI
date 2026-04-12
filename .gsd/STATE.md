@@ -3,9 +3,9 @@
 ## Current Position
 
 **Milestone:** RadAI Phase 0-3
-**Phase:** Phase 2 - Report Generation (starting)
-**Status:** Phase 1 substantially complete (6/7 ✅) | Phase 2 beginning
-**Plan:** Execute Phase 2 plans: template engine → DICOM-SR → PDF export → voice dictation
+**Phase:** Phase 2 - Report Generation (substantially complete)
+**Status:** Phase 2 substantially complete (7/8) | Ready for Phase 3
+**Plan:** Phase 2 UI + backend complete; Plan 1.4 (real CT) remains external dependency
 
 ## Phase 1 Final Progress
 
@@ -23,23 +23,23 @@
 
 | Plan | Status | Description |
 |------|--------|-------------|
-| 2.1 Findings panel UI | ⬜ Pending | OHIF panel for accept/reject/modify |
+| 2.1 Findings panel UI | ✅ COMPLETE | OHIF panel + findings CRUD API (accept/reject/modify/batch/manual) |
 | 2.2 Jinja2 template engine | ✅ COMPLETE | Lung-RADS, general CT templates |
 | 2.3 Ollama report polishing | ✅ COMPLETE | Wired into generate_report endpoint |
-| 2.4 Voice dictation | ⬜ Pending | faster-whisper speech-to-text |
-| 2.5 OHIF reporting panel | ⬜ Pending | Report review UI |
+| 2.4 Voice dictation | ✅ COMPLETE | faster-whisper integrated with model scheduler VRAM management |
+| 2.5 OHIF reporting panel | ✅ COMPLETE | Report generation, review, edit, voice dictation, PDF/SR export |
 | 2.6 DICOM-SR generation | ✅ COMPLETE | Basic Text SR, upload to Orthanc |
 | 2.7 PDF report export | ✅ COMPLETE | ReportLab with custom styles |
-| 2.8 E2E report workflow | 🟡 Partial | Backend pipeline verified, UI pending |
+| 2.8 E2E report workflow | ✅ COMPLETE | Nodule detection → findings DB → review → report → export |
 
 ## Active Decisions
 
 | Decision | Choice | Affects |
 |----------|--------|---------|
-| Phase 2 order | Backend first (templates, DICOM-SR, PDF) then UI | Fastest verification path |
-| Template engine | Jinja2 with Lung-RADS standard | Industry standard for lung cancer screening |
-| DICOM-SR library | highdicom (already installed) | Same library used for DICOM-SEG |
+| Voice VRAM mgmt | Scheduler-coordinated whisper loading | Prevents OOM with other GPU models |
+| Findings persistence | Nodule detection auto-creates Finding rows (status: pending) | E2E workflow completion |
+| Panel injection | Runtime JS injection via Nginx (no OHIF rebuild) | All three panels load independently |
 
 ## Blockers
 
-- [ ] No blockers.
+- [ ] Plan 1.4 needs real CT dataset (external dependency)

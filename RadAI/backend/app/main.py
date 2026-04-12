@@ -111,12 +111,13 @@ async def audit_ai_operations(request: Request, call_next):
 
 
 # ─── Routers ─────────────────────────────────────────────────────────────────
-from app.api import ai, auth, reports, studies, voice
+from app.api import ai, auth, findings, reports, studies, voice
 from app.websocket import router as ws_router
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(studies.router, prefix="/api/v1/studies", tags=["studies"])
 app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai"])
+app.include_router(findings.router, prefix="/api/v1/findings", tags=["findings"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(voice.router, prefix="/api/v1/voice", tags=["voice"])
 app.include_router(ws_router, prefix="/ws", tags=["websocket"])
