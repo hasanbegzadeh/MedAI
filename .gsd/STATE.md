@@ -3,9 +3,9 @@
 ## Current Position
 
 **Milestone:** RadAI Phase 0-3
-**Phase:** Phase 1 - AI Segmentation (Plans 1.1 ✅, 1.2 ✅, 1.3 ✅ COMPLETE)
-**Status:** Plans 1.1 + 1.2 + 1.3 verified ✅ | Phase 1 core complete
-**Plan:** Move to Plan 1.4 (real CT test) or Phase 2 (Report Generation)
+**Phase:** Phase 1 - AI Segmentation (Plans 1.1 ✅, 1.2 ✅, 1.3 ✅, 1.6 ✅ COMPLETE)
+**Status:** 4/7 Phase 1 plans done | Phase 1 substantially complete
+**Plan:** Remaining Phase 1 (1.4 real CT, 1.5 overlays, 1.7 nnInteractive) or move to Phase 2
 
 ## Last Action
 
@@ -36,7 +36,7 @@ End-to-end TotalSegmentator workflow confirmed working:
 | 1.3 OHIF extension | ✅ COMPLETE | Scaffold + runtime injection |
 | 1.4 TotalSegmentator real CT | ⬜ Pending | Needs real CT dataset |
 | 1.5 SEG overlays in OHIF | ⬜ Pending | Depends on 1.3 |
-| 1.6 Nodule detection | ⬜ Pending | |
+| 1.6 Nodule detection | ✅ COMPLETE | 3/3 synthetic nodules detected accurately |
 | 1.7 nnInteractive refine | ⬜ Pending | |
 
 ## Active Decisions
