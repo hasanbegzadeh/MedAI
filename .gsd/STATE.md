@@ -24,13 +24,13 @@
 | Plan | Status | Description |
 |------|--------|-------------|
 | 2.1 Findings panel UI | ⬜ Pending | OHIF panel for accept/reject/modify |
-| 2.2 Jinja2 template engine | 🟡 Next | Lung-RADS, BI-RADS, general CT templates |
-| 2.3 Ollama report polishing | ⬜ Pending | MedGemma 1.5 4B for language polish |
+| 2.2 Jinja2 template engine | ✅ COMPLETE | Lung-RADS, general CT templates |
+| 2.3 Ollama report polishing | ✅ COMPLETE | Wired into generate_report endpoint |
 | 2.4 Voice dictation | ⬜ Pending | faster-whisper speech-to-text |
 | 2.5 OHIF reporting panel | ⬜ Pending | Report review UI |
-| 2.6 DICOM-SR generation | ⬜ Pending | Structured report export to PACS |
-| 2.7 PDF report export | ⬜ Pending | Template-based PDF generation |
-| 2.8 E2E report workflow | ⬜ Pending | Full test of report pipeline |
+| 2.6 DICOM-SR generation | ✅ COMPLETE | Basic Text SR, upload to Orthanc |
+| 2.7 PDF report export | ✅ COMPLETE | ReportLab with custom styles |
+| 2.8 E2E report workflow | 🟡 Partial | Backend pipeline verified, UI pending |
 
 ## Active Decisions
 
