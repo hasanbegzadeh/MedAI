@@ -1,4 +1,4 @@
-# Install-DesktopShortcut.ps1 — create a "RadAI" icon on the Windows desktop.
+﻿# Install-DesktopShortcut.ps1 — create a "RadAI" icon on the Windows desktop.
 #
 # Run once after cloning the repo:
 #     powershell -ExecutionPolicy Bypass -File scripts\launcher\Install-DesktopShortcut.ps1
