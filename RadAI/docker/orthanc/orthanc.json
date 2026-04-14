@@ -1,0 +1,47 @@
+{
+  "Name": "RadAI PACS",
+  "Description": "RadAI local DICOM storage server",
+  "StorageDirectory": "/var/lib/orthanc/db",
+  "IndexDirectory": "/var/lib/orthanc/db",
+
+  "HttpServerEnabled": true,
+  "HttpPort": 8042,
+  "HttpCompressionEnabled": true,
+
+  "DicomServerEnabled": true,
+  "DicomPort": 4242,
+  "DicomAet": "RADAI",
+  "DicomCheckCalledAet": false,
+
+  "AuthenticationEnabled": true,
+
+  "Plugins": [
+    "/usr/share/orthanc/plugins/"
+  ],
+
+  "DicomWeb": {
+    "Enable": true,
+    "Root": "/dicom-web/",
+    "EnableWado": true,
+    "WadoRoot": "/wado",
+    "Ssl": false,
+    "Host": "orthanc",
+    "StudiesMetadata": "MainDicomTags",
+    "SeriesMetadata": "MainDicomTags"
+  },
+
+  "CORS": {
+    "AllowedOrigins": ["https://localhost", "http://localhost:3000", "http://ohif:80"],
+    "AllowedMethods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    "AllowedHeaders": ["Authorization", "Content-Type", "Accept"]
+  },
+
+  "RemoteAccessAllowed": true,
+  "SslEnabled": false,
+
+  "MaximumPatientCount": 0,
+  "MaximumStorageSize": 0,
+
+  "StorageCompression": false,
+  "DeidentificationReplacePrefix": "RadAI-"
+}

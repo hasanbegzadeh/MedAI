@@ -1,0 +1,129 @@
+{# Lung-RADS Structured Report Template #}
+{# Reference: ACR Lung-RADS v2022 #}
+CT CHEST {{ technique | default("without intravenous contrast") }}
+
+EXAMINATION TYPE:
+CT of the chest {{ "with IV contrast" if with_contrast else "without IV contrast" }}.
+
+CLINICAL INDICATION:
+{{ clinical_indication | default("Lung cancer screening") }}.
+
+TECHNIQUE:
+{{ technique_description | default("Axial images from the lung apices through the adrenal glands were obtained. Multiplanar reformatted images in coronal and sagittal planes were generated.") }}
+
+COMPARISON:
+{{ comparison | default("None available") }}.
+
+FINDINGS:
+
+LUNGS AND AIRWAYS:
+{% if lung_findings %}
+{% for finding in lung_findings %}
+- {{ finding.description }}
+{% if finding.measurements.longest_diameter_mm %}  Measures {{ finding.measurements.longest_diameter_mm }} mm in longest diameter.{% endif %}
+{% if finding.measurements.volume_mm3 %}  Volume: {{ "%.1f"|format(finding.measurements.volume_mm3) }} mm³.{% endif %}
+{% if finding.measurements.mean_hu is not none %}  Mean attenuation: {{ finding.measurements.mean_hu }} HU.{% endif %}
+{% endfor %}
+{% else %}
+- No pulmonary nodules or masses identified.
+- Airways are patent to the subsegmental level.
+{% endif %}
+
+{% if nodule_summary %}
+LUNG-RADS ASSESSMENT:
+{% for nodule in nodule_summary %}
+- {{ nodule.nodule_id }}: {{ nodule.location }}, {{ nodule.diameter_mm }} mm, {{ nodule.characteristics | default("solid nodule") }}
+{% endfor %}
+
+{% if lung_rads_category %}
+LUNG-RADS CATEGORY: {{ lung_rads_category }}
+{% endif %}
+{% endif %}
+
+MEDIASTINUM AND HILA:
+{% if mediastinal_findings %}
+{% for finding in mediastinal_findings %}
+- {{ finding.description }}
+{% endfor %}
+{% else %}
+- No significant mediastinal or hilar lymphadenopathy.
+{% endif %}
+
+CARDIOVASCULAR:
+{% if cardiac_findings %}
+{% for finding in cardiac_findings %}
+- {{ finding.description }}
+{% endfor %}
+{% else %}
+- Heart size is within normal limits.
+- No pericardial effusion.
+{% endif %}
+
+PLEURA:
+{% if pleural_findings %}
+{% for finding in pleural_findings %}
+- {{ finding.description }}
+{% endfor %}
+{% else %}
+- No pleural effusion or pneumothorax.
+{% endif %}
+
+BONES AND SOFT TISSUES:
+{% if bone_findings %}
+{% for finding in bone_findings %}
+- {{ finding.description }}
+{% endfor %}
+{% else %}
+- No suspicious osseous lesions.
+- Limited evaluation of upper abdominal structures is unremarkable.
+{% endif %}
+
+{% if ai_findings %}
+AI-DETECTED FINDINGS:
+{% for ai in ai_findings %}
+- {{ ai.location | default("Unspecified") }}: {{ ai.finding_type }}, {{ "%.1f"|format(ai.diameter_mm) }} mm (confidence: {{ "%.0f"|format(ai.confidence * 100) }}%)
+{% endfor %}
+{% endif %}
+
+IMPRESSION:
+
+{% if lung_rads_category %}
+{{ lung_rads_category }}{% if lung_rads_description %} — {{ lung_rads_description }}{% endif %}
+{% endif %}
+
+{% if impression_text %}
+{{ impression_text }}
+{% else %}
+{% if lung_rads_category == "Lung-RADS 1" %}
+Negative. No lung nodules identified. Continue annual screening with low-dose CT in 12 months.
+{% elif lung_rads_category == "Lung-RADS 2" %}
+Benign appearance or behavior. No action needed. Continue annual screening with low-dose CT in 12 months.
+{% elif lung_rads_category == "Lung-RADS 3" %}
+Probably benign. Short-term follow-up CT in 6 months recommended.
+{% elif lung_rads_category == "Lung-RADS 4A" %}
+Suspicious. Follow-up CT in 3 months or tissue sampling / PET-CT as clinically indicated.
+{% elif lung_rads_category == "Lung-RADS 4B" %}
+Very suspicious. Tissue sampling or PET-CT recommended.
+{% elif lung_rads_category == "Lung-RADS 4X" %}
+Suspicious with additional features. Follow-up CT in 3 months or tissue sampling as clinically indicated.
+{% else %}
+Findings as described above. Clinical correlation recommended.
+{% endif %}
+{% endif %}
+
+{% if recommendations %}
+
+RECOMMENDATIONS:
+{% for rec in recommendations %}
+- {{ rec }}
+{% endfor %}
+{% endif %}
+
+{% if ai_disclaimer %}
+---
+{{ ai_disclaimer }}
+{% else %}
+---
+NOTE: This report was generated with assistance from AI-based image analysis (RadAI v0.1.0).
+All findings have been reviewed and confirmed by the interpreting radiologist.
+{% endif %}
