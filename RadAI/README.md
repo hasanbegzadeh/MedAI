@@ -1,8 +1,17 @@
 # RadAI — AI-Powered Radiology Assistant
 
-Multi-modality DICOM viewer with AI-powered pathology detection, segmentation, and structured reporting. Forked from [OHIF-AI](https://github.com/CCI-Bonn/OHIF-AI), extending OHIF Viewer with automated medical image analysis.
+Multi-modality DICOM viewer with AI-powered pathology detection, anatomical segmentation, and structured reporting. Extends OHIF Viewer with automated medical image analysis.
 
-**Phase 1 Target**: CT Chest AI Assistant (auto-detect nodules, segment anatomy, generate Lung-RADS reports).
+**Supported Modalities**: CT, MRI, X-ray, Ultrasound, Mammography  
+**AI Models**: TotalSegmentator, nnInteractive, LiteMedSAM, MedGemma 1.5 4B  
+**Status**: All Phases 0-3 Complete ✅
+
+## Quick Links
+
+- 📘 **[Startup Guide](STARTUP.md)** — How to start the application
+- 🧪 **[Testing Guide](TESTING.md)** — How to test all components
+- 🏗️ **[Architecture](ARCHITECTURE.md)** — System design and diagrams
+- 📋 **[Master Plan](MASTER_PLAN.md)** — Complete feature roadmap
 
 ## Architecture
 
@@ -22,45 +31,19 @@ Browser (OHIF v3.10) → Orthanc PACS → FastAPI Backend → AI Models (MONAI/O
 
 ## Quick Start
 
-### Prerequisites
+See **[STARTUP.md](STARTUP.md)** for the complete startup guide.
 
-- Docker + Docker Compose
-- NVIDIA GPU (8+ GB VRAM recommended)
-- Ollama installed locally
-
-### 1. Clone and Configure
+**TL;DR:**
 
 ```bash
 cd RadAI
-cp .env.example .env
-# Edit .env with your secrets
+cp .env.development .env    # Use safe development defaults
+make up                      # Start Docker stack
+make seed-admin              # Create admin user
+make verify                  # Verify all services
 ```
 
-### 2. Start the Stack
-
-```bash
-docker compose up -d
-```
-
-### 3. Initialize Database
-
-```bash
-cd backend
-alembic upgrade head
-```
-
-### 4. Pull Ollama Models
-
-```bash
-ollama pull MedAIBase/MedGemma1.5:4b-it
-```
-
-### 5. Access
-
-- **OHIF Viewer**: http://localhost:3000
-- **Orthanc**: http://localhost:8042
-- **API Docs**: http://localhost:8000/docs
-- **Flower (Celery)**: http://localhost:5555
+Access: https://localhost (admin / changeme)
 
 ## Project Structure
 
@@ -95,17 +78,27 @@ RadAI/
 
 ## Development
 
+See **[TESTING.md](TESTING.md)** for the complete testing guide.
+
 ```bash
 # Run backend locally
 cd backend
 uvicorn app.main:app --reload
 
 # Run migrations
-alembic revision --autogenerate -m "description"
-alembic upgrade head
+make migrate
 
-# Run Celery worker
-celery -A app.queue.celery_app worker --loglevel=info
+# Run tests
+cd backend && pytest tests/ -v
+
+# Verify Phase 0 (health checks)
+make verify
+
+# Verify Phase 3 (cloud + RAG + multi-modality)
+make verify-phase3
+
+# View all Makefile targets
+make help
 ```
 
 ## License

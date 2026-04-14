@@ -41,7 +41,7 @@ window.config = {
           'multipart/related; type="application/octet-stream"; transfer-syntax=*',
         ],
         headers: {
-          Authorization: 'Basic ' + btoa('orthanc:' + (window.__ORTHANC_PASSWORD__ || 'orthanc')),
+          Authorization: 'Basic ' + btoa('orthanc:DifM7wqUhRyTrQBL'),
         },
       },
     },

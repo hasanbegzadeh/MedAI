@@ -20,6 +20,125 @@ from app.config import get_settings
 logger = structlog.get_logger(__name__)
 settings = get_settings()
 
+
+async def run_totalsegmentator_cloud_job(
+    job_id: UUID, study_id: UUID, roi_subset: list[str] | None = None
+):
+    """Run TotalSegmentator on cloud GPU (Tier 3, full resolution).
+
+    Anonymizes DICOM, uploads to cloud GPU, monitors progress, downloads results.
+    """
+    import tempfile
+
+    from app.cloud.gpu_client import get_cloud_gpu_client, CloudGPUError
+    from app.dicom.anonymizer import DICOMAnonymizer, AnonymizationError
+
+    study_id_str = str(study_id)
+
+    async def progress(pct: int):
+        async with AsyncSessionLocal() as db:
+            job = await db.get(AIJob, job_id)
+            if job:
+                job.progress_pct = pct
+                await db.commit()
+        await manager.send_progress(study_id_str, job_type="totalsegmentator_cloud", pct=pct)
+
+    try:
+        temp_base = Path(tempfile.mkdtemp(prefix="radai-cloud-"))
+        dicom_dir = temp_base / "dicom"
+        anon_dir = temp_base / "anon"
+        nifti_path = temp_base / "ct.nii.gz"
+
+        # Get study orthanc_id
+        async with AsyncSessionLocal() as db:
+            study = await db.get(Study, study_id)
+            orthanc_id = study.orthanc_id if study else None
+
+        if not orthanc_id:
+            raise CloudGPUError("Study not found or Orthanc ID missing")
+
+        # 1. Download DICOM from Orthanc
+        await progress(5)
+        dicom_dir.mkdir(parents=True, exist_ok=True)
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.get(
+                f"{settings.orthanc_url}/studies/{orthanc_id}",
+                auth=(settings.orthanc_user, settings.orthanc_password),
+            )
+            resp.raise_for_status()
+            series_ids = resp.json().get("Series", [])
+            if not series_ids:
+                raise CloudGPUError("No series found in Orthanc study")
+
+            series_id = series_ids[0]
+            resp = await client.get(
+                f"{settings.orthanc_url}/series/{series_id}/instances",
+                auth=(settings.orthanc_user, settings.orthanc_password),
+            )
+            resp.raise_for_status()
+            for inst in resp.json():
+                inst_id = inst["ID"]
+                inst_resp = await client.get(
+                    f"{settings.orthanc_url}/instances/{inst_id}/file",
+                    auth=(settings.orthanc_user, settings.orthanc_password),
+                )
+                with open(dicom_dir / f"{inst_id}.dcm", "wb") as f:
+                    f.write(inst_resp.content)
+
+        # 2. Anonymize DICOM
+        await progress(15)
+        anonymizer = DICOMAnonymizer()
+        anonymizer.anonymize_directory(
+            dicom_dir, anon_dir, progress_callback=lambda pct: progress(15 + int(pct * 0.15))
+        )
+
+        # 3. Convert to NIfTI
+        await progress(35)
+        dicom_series_to_nifti(anon_dir, nifti_path)
+
+        # 4. Run on cloud GPU (full resolution)
+        await progress(40)
+        cloud_client = get_cloud_gpu_client()
+        result = await cloud_client.run_totalsegmentator(
+            nifti_path=str(nifti_path),
+            full_res=True,
+            roi_subset=roi_subset,
+            timeout=1200,
+            progress_callback=lambda pct: progress(40 + int(pct * 0.5)),
+        )
+
+        # 5. Update job status
+        async with AsyncSessionLocal() as db:
+            job = await db.get(AIJob, job_id)
+            if job:
+                job.status = "completed"
+                job.progress_pct = 100
+                job.result_json = result
+                job.completed_at = datetime.datetime.now(datetime.UTC)
+                await db.commit()
+
+        await manager.send_complete(
+            study_id_str,
+            job_type="totalsegmentator_cloud",
+            result_summary="Cloud TotalSegmentator complete (full resolution)",
+        )
+
+    except Exception as exc:
+        logger.error("Cloud TotalSegmentator job failed", study_id=study_id, error=str(exc))
+        async with AsyncSessionLocal() as db:
+            job = await db.get(AIJob, job_id)
+            if job:
+                job.status = "failed"
+                job.error_message = str(exc)
+                await db.commit()
+        await manager.send_error(
+            study_id_str, job_type="totalsegmentator_cloud", error=str(exc)
+        )
+    finally:
+        if "temp_base" in locals():
+            shutil.rmtree(temp_base, ignore_errors=True)
+
+
 async def run_totalsegmentator_job(job_id: UUID, study_id: UUID, roi_subset: list[str] | None = None, fast: bool = True):
     """Run TotalSegmentator in the background and update job status."""
     scheduler = get_scheduler()

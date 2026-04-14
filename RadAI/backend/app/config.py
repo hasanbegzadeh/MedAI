@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     )
 
     # ─── Application ─────────────────────────────────────────────────────────
-    environment: Literal["development", "staging", "production"] = "development"
+    environment: Literal["development", "staging", "production", "testing"] = "development"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     backend_host: str = "0.0.0.0"
     backend_port: int = 8000
@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     # ─── Cloud GPU (Tier 3) ──────────────────────────────────────────────────
     cloud_gpu_url: str = ""
     cloud_gpu_api_key: str = ""
+
+    # ─── RAG ─────────────────────────────────────────────────────────────────
+    rag_backend: Literal["keyword", "vector"] = "keyword"
+    vector_db_path: str = "./data/vectordb"
+    rag_embedding_model: str = "all-MiniLM-L6-v2"
 
     # ─── Storage ─────────────────────────────────────────────────────────────
     temp_processing_dir: str = "/tmp/radai-processing"

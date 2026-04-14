@@ -96,6 +96,10 @@ seed-admin:  ## Seed or reset the default admin user (admin / changeme)
 verify: seed-admin  ## Run Phase 0 verification script (healthchecks + connectivity)
 	$(PY_HOST) scripts/verify_phase_0.py
 
+.PHONY: verify-phase3
+verify-phase3:  ## Run Phase 3 verification (cloud + RAG + multi-modality)
+	$(PY_HOST) scripts/verify_phase_3.py
+
 .PHONY: verify-gpu
 verify-gpu:  ## Verify GPU is accessible from inside backend container
 	$(COMPOSE) exec backend python3 -c "import torch; print('CUDA:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU only'); print('Capability:', torch.cuda.get_device_capability(0) if torch.cuda.is_available() else 'N/A')"
@@ -123,6 +127,24 @@ verify-real-ct: seed-admin  ## Run Plan 1.4: full E2E with real CT (download + T
 .PHONY: verify-e2e
 verify-e2e: seed-admin  ## Run Plan 1.2: E2E segmentation with synthetic CT
 	$(PY_HOST) scripts/verify_e2e_segmentation.py
+
+.PHONY: verify-celery
+verify-celery:  ## Verify Celery queue system end-to-end
+	$(PY_HOST) scripts/verify_celery_e2e.py
+
+.PHONY: verify-voice
+verify-voice:  ## Verify voice dictation pipeline
+	$(PY_HOST) scripts/verify_voice_dictation.py
+
+# ─── Model management ────────────────────────────────────────────────────────
+
+.PHONY: download-models
+download-models:  ## Download required AI model checkpoints
+	$(PY_HOST) scripts/download_models.py
+
+.PHONY: list-models
+list-models:  ## List available AI model checkpoints
+	$(PY_HOST) scripts/download_models.py --list
 
 # ─── Database migrations ─────────────────────────────────────────────────────
 

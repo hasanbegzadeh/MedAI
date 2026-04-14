@@ -57,6 +57,40 @@ class Study(Base):
     audit_entries = relationship("AuditLog", back_populates="study")
 
 
+class ModelVersion(Base):
+    __tablename__ = "model_versions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    model_name = Column(String(128), nullable=False)
+    version = Column(String(64), nullable=False)
+    hash = Column(String(128))
+    config_json = Column(JSONB)
+    status = Column(String(32), nullable=False, default="testing")  # active/deprecated/testing/retired
+    deployed_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    metrics = relationship("ModelMetric", back_populates="model_version", cascade="all, delete-orphan")
+    ai_jobs = relationship("AIJob", back_populates="model_version")
+
+    __table_args__ = (
+        # Unique constraint on (model_name, version)
+        {"sqlite_autoincrement": False},
+    )
+
+
+class ModelMetric(Base):
+    __tablename__ = "model_metrics"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    model_version_id = Column(UUID(as_uuid=True), ForeignKey("model_versions.id", ondelete="CASCADE"), nullable=False)
+    metric_name = Column(String(64), nullable=False)
+    metric_value = Column(Float, nullable=False)
+    study_id = Column(UUID(as_uuid=True), ForeignKey("studies.id"), nullable=True)
+    computed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    model_version = relationship("ModelVersion", back_populates="metrics")
+
+
 class AIJob(Base):
     __tablename__ = "ai_jobs"
 
@@ -67,6 +101,7 @@ class AIJob(Base):
     status = Column(String(32), nullable=False, default="queued")
     tier = Column(SmallInteger, nullable=False, default=1)
     model_name = Column(String(128))
+    model_version_id = Column(UUID(as_uuid=True), ForeignKey("model_versions.id"), nullable=True)
     progress_pct = Column(SmallInteger, default=0)
     error_message = Column(Text)
     result_json = Column(JSONB)
@@ -75,6 +110,7 @@ class AIJob(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     study = relationship("Study", back_populates="ai_jobs")
+    model_version = relationship("ModelVersion", back_populates="ai_jobs")
     findings = relationship("Finding", back_populates="ai_job")
 
 

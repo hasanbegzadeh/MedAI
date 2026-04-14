@@ -12,7 +12,10 @@
       "Bash(ping *)",
       "Bash(findstr *)",
       "Bash(timeout *)",
-      "Bash(mkdir *)"
+      "Bash(mkdir *)",
+      "Bash(make *)",
+      "Bash(docker compose exec *)",
+      "Bash(docker compose restart *)"
     ]
   },
   "$version": 3

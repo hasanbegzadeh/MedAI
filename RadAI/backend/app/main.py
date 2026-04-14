@@ -68,6 +68,7 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url="/docs" if settings.environment != "production" else None,
     redoc_url="/redoc" if settings.environment != "production" else None,
+    root_path="" if settings.environment == "testing" else "/api",  # Nginx serves under /api prefix
 )
 
 app.state.limiter = limiter
@@ -112,11 +113,13 @@ async def audit_ai_operations(request: Request, call_next):
 
 # ─── Routers ─────────────────────────────────────────────────────────────────
 from app.api import ai, auth, findings, reports, studies, voice
+from app.api import model_registry as model_registry_api
 from app.websocket import router as ws_router
 
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(studies.router, prefix="/api/v1/studies", tags=["studies"])
 app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai"])
+app.include_router(model_registry_api.router, prefix="/api/v1/ai", tags=["model-registry"])
 app.include_router(findings.router, prefix="/api/v1/findings", tags=["findings"])
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"])
 app.include_router(voice.router, prefix="/api/v1/voice", tags=["voice"])
@@ -144,12 +147,12 @@ async def health() -> dict:
         checks["database"] = f"error: {type(exc).__name__}"
         logger.warning("Health check: database unreachable", error=str(exc))
 
-    # Check Redis
+    # Check Redis (async)
     try:
-        import redis as redis_lib
+        import redis.asyncio as redis_lib
         r = redis_lib.from_url(settings.redis_url, socket_timeout=3)
-        r.ping()
-        r.close()
+        await r.ping()
+        await r.aclose()
         checks["redis"] = "ok"
     except Exception as exc:
         checks["redis"] = f"error: {type(exc).__name__}"

@@ -27,6 +27,7 @@ from app.ai.metadata_agent import extract_keywords
 from app.reporting.engine import get_template_engine, build_lung_rads_context, build_general_context
 from app.reporting.dicom_sr import create_dicom_sr_text, save_dicom_sr, DicomSRError
 from app.reporting.pdf_export import generate_pdf_report, PDFReportError
+from app.reporting.rag import get_clinical_rag
 
 router = APIRouter()
 
@@ -41,8 +42,22 @@ class ReportOut(BaseModel):
     ai_polished: bool
     ai_model_used: str | None
     extracted_keywords: list[str] | None = None
+    rag_sources: list[dict] | None = None
 
     model_config = {"from_attributes": True}
+
+
+class RagReferencesOut(BaseModel):
+    references: list[dict]
+    sources: list[dict]
+    context_preview: str
+
+
+class RagRetrieveRequest(BaseModel):
+    findings_text: str
+    modality: str | None = None
+    body_part: str | None = None
+    top_k: int = 3
 
 
 class PaginatedReports(BaseModel):
@@ -53,6 +68,7 @@ class PaginatedReports(BaseModel):
 class GenerateReportRequest(BaseModel):
     template: str = "lung_rads"
     use_ai_polish: bool = True
+    use_rag: bool = True  # NEW: RAG-enhanced reports
     ai_tier: int = 1
     classification: str | None = None
     clinical_indication: str | None = None
@@ -159,22 +175,52 @@ async def generate_report(
 
     content_text = engine.render(template_file, context)
 
-    # 2. Optional AI polish
+    # 2. Optional AI polish with RAG context
     ai_model_used = None
     ai_polished = False
+    rag_sources = []
 
     if request.use_ai_polish:
         scheduler = get_scheduler()
         try:
             if request.ai_tier == 1:
-                content_text = await scheduler.generate_report_local(content_text)
+                # Build RAG-enhanced prompt for local Ollama
+                if request.use_rag:
+                    rag = get_clinical_rag()
+                    rag_prompt = await rag.build_report_prompt(
+                        findings_text=findings_text,
+                        findings_dicts=findings_dicts,
+                        modality=study.modality,
+                        body_part=study.body_part,
+                    )
+                    content_text = await scheduler.generate_report_local(rag_prompt)
+                else:
+                    content_text = await scheduler.generate_report_local(content_text)
                 ai_model_used = "MedGemma1.5:4b-it (local Ollama)"
                 ai_polished = True
             elif request.ai_tier == 2:
-                content_text = await scheduler.generate_report_cloud_tier2(content_text)
+                # Build RAG-enhanced prompt for cloud
+                if request.use_rag:
+                    rag = get_clinical_rag()
+                    rag_prompt = await rag.build_report_prompt(
+                        findings_text=findings_text,
+                        findings_dicts=findings_dicts,
+                        modality=study.modality,
+                        body_part=study.body_part,
+                    )
+                    content_text = await scheduler.generate_report_cloud_tier2(rag_prompt)
+                else:
+                    content_text = await scheduler.generate_report_cloud_tier2(content_text)
                 settings = get_settings()
                 ai_model_used = f"OpenRouter/{settings.openrouter_model}"
                 ai_polished = True
+
+                # Get RAG sources for audit trail
+                if request.use_rag:
+                    rag_result = await rag.retrieve(
+                        findings_text, study.modality, study.body_part
+                    )
+                    rag_sources = rag_result.get("sources", [])
         except ModelSchedulerError:
             ai_polished = False
 
@@ -352,3 +398,32 @@ async def export_dicom_sr(
 
     except DicomSRError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.post(
+    "/rag/retrieve",
+    response_model=RagReferencesOut,
+    summary="Retrieve clinical references for RAG-enhanced reporting",
+)
+async def retrieve_rag_references(
+    body: RagRetrieveRequest,
+    _: User = Depends(get_current_user),
+) -> RagReferencesOut:
+    """Retrieve relevant clinical guidelines for the given findings.
+
+    Used by the UI to show which references will be injected into
+    the AI report generation prompt.
+    """
+    rag = get_clinical_rag()
+    result = await rag.retrieve(
+        findings_text=body.findings_text,
+        modality=body.modality,
+        body_part=body.body_part,
+        top_k=body.top_k,
+    )
+
+    return RagReferencesOut(
+        references=[ref for _, ref in result.get("references", [])],
+        sources=result.get("sources", []),
+        context_preview=result.get("context_text", "")[:500] + "...",
+    )

@@ -22,6 +22,7 @@ from app.db.session import get_db
 from app.ai.totalsegmentator import run_totalsegmentator_job
 from app.ai.nninteractive import run_nninteractive_job
 from app.ai.nodule_detection import run_nodule_detection_job
+from app.ai.modality_registry import get_modality_registry, ModalityError
 from app.config import get_settings
 
 settings = get_settings()
@@ -30,201 +31,98 @@ router = APIRouter()
 
 
 async def run_nodule_detection_from_study(job_id: UUID, study_id: UUID):
-    """Run TotalSegmentator with lung ROI, then detect nodules.
-
-    This is a composite job: first segment lungs, then find nodules
-    within the lung masks.
-    """
-    import datetime
-    import shutil
+    """Run TotalSegmentator with lung ROI, then detect nodules (Refactored)."""
     from pathlib import Path
-
-    import httpx
-    import numpy as np
+    import SimpleITK as sitk
     import structlog
-    from sqlalchemy.ext.asyncio import AsyncSession
-
-    from app.db.models import AIJob, Study
+    from app.db.models import Study
     from app.db.session import AsyncSessionLocal
-    from app.scheduler import get_scheduler, ModelSchedulerError
+    from app.scheduler import get_scheduler
     from app.websocket import manager
-    from app.dicom.converter import dicom_series_to_nifti
-    from app.ai.nodule_detection import detect_nodules
-    from app.config import get_settings
-
+    from app.services.pacs_service import PACSService
+    from app.services.findings_service import FindingsService
+    from app.services.ai_pipeline import AIPipeline
+    from app.services.subagent_orchestrator import SubagentStateLogger
+    
     logger = structlog.get_logger(__name__)
     settings = get_settings()
     scheduler = get_scheduler()
     study_id_str = str(study_id)
+    
+    # Initialize subagent logger
+    log_dir = Path(settings.temp_processing_dir) / "agent_logs"
+    agent_log = SubagentStateLogger(log_dir, str(job_id))
 
     async def progress(pct: int):
         async with AsyncSessionLocal() as db:
-            job = await db.get(AIJob, job_id)
-            if job:
-                job.progress_pct = pct
-                await db.commit()
+            fs = FindingsService(db)
+            await fs.update_job_status(job_id, status=None, progress_pct=pct)
         await manager.send_progress(study_id_str, job_type="nodule_detection", pct=pct)
 
     try:
-        temp_base = Path("/tmp/radai-processing")
-        temp_base.mkdir(parents=True, exist_ok=True)
-
-        dicom_dir = temp_base / f"{study_id}_nodule_dicom"
-        dicom_dir.mkdir(parents=True, exist_ok=True)
-        ct_nifti = temp_base / f"{study_id}_ct.nii.gz"
-        lung_mask_dir = temp_base / f"{study_id}_lung_mask"
-
-        # Get study orthanc_id
         async with AsyncSessionLocal() as db:
+            pacs = PACSService(settings)
+            findings_svc = FindingsService(db)
+            pipeline = AIPipeline(study_id, job_id, settings, pacs, findings_svc, progress)
+            
+            await pipeline.initialize()
+            
+            # Step 1: Fetch
+            agent_log.log_step_start("fetch_data")
             study = await db.get(Study, study_id)
-            orthanc_id = study.orthanc_id if study else None
-
-        if not orthanc_id:
-            raise ModelSchedulerError("Study not found or Orthanc ID missing")
-
-        # 1. Download DICOM from Orthanc
-        await progress(5)
-        async with httpx.AsyncClient(timeout=60) as client:
-            resp = await client.get(
-                f"{settings.orthanc_url}/studies/{orthanc_id}",
-                auth=(settings.orthanc_user, settings.orthanc_password),
+            if not study or not study.orthanc_id:
+                raise ValueError("Study or Orthanc ID missing")
+            await pipeline.fetch_data(study.orthanc_id)
+            agent_log.log_step_complete("fetch_data", "DICOM series downloaded from Orthanc")
+            
+            # Step 2: Conversion
+            agent_log.log_step_start("conversion")
+            await progress(15)
+            await pipeline.convert_to_nifti()
+            agent_log.log_step_complete("conversion", "DICOM series converted to NIfTI volume")
+            
+            # Step 3: Segmentation
+            agent_log.log_step_start("segmentation")
+            await progress(25)
+            scheduler.run_totalsegmentator(
+                input_path=str(pipeline.nifti_path),
+                output_path=str(pipeline.output_dir),
+                roi_subset=[
+                    "lung_upper_lobe_left", "lung_lower_lobe_left",
+                    "lung_upper_lobe_right", "lung_middle_lobe_right",
+                    "lung_lower_lobe_right"
+                ],
+                fast=True,
+                progress_callback=lambda pct: progress(25 + int(pct * 0.5)),
             )
-            resp.raise_for_status()
-            series_ids = resp.json().get("Series", [])
-            if not series_ids:
-                raise ModelSchedulerError("No series found in Orthanc study")
-
-            series_id = series_ids[0]
-            resp = await client.get(
-                f"{settings.orthanc_url}/series/{series_id}/instances",
-                auth=(settings.orthanc_user, settings.orthanc_password),
+            agent_log.log_step_complete("segmentation", "TotalSegmentator lung lobe extraction complete")
+            
+            # Step 4: Detection
+            agent_log.log_step_start("detection")
+            await progress(80)
+            candidates = await pipeline.detect_nodules_in_volume(pipeline.output_dir)
+            agent_log.log_step_complete("detection", f"Detected {len(candidates)} nodule candidates")
+            
+            # Step 5: Persistence
+            agent_log.log_step_start("persistence")
+            await pipeline.persist_results(candidates)
+            await manager.send_complete(
+                study_id_str,
+                job_type="nodule_detection",
+                result_summary=f"Found {len(candidates)} nodule candidate(s)",
             )
-            resp.raise_for_status()
-            for inst in resp.json():
-                inst_id = inst["ID"]
-                inst_resp = await client.get(
-                    f"{settings.orthanc_url}/instances/{inst_id}/file",
-                    auth=(settings.orthanc_user, settings.orthanc_password),
-                )
-                with open(dicom_dir / f"{inst_id}.dcm", "wb") as f:
-                    f.write(inst_resp.content)
-
-        # 2. DICOM → NIfTI
-        await progress(15)
-        dicom_series_to_nifti(dicom_dir, ct_nifti)
-
-        # 3. Run TotalSegmentator with lung ROI only
-        await progress(25)
-        scheduler.run_totalsegmentator(
-            input_path=str(ct_nifti),
-            output_path=str(lung_mask_dir),
-            roi_subset=["lung_upper_lobe_left", "lung_lower_lobe_left",
-                        "lung_upper_lobe_right", "lung_middle_lobe_right",
-                        "lung_lower_lobe_right"],
-            fast=True,
-            timeout=600,
-            progress_callback=lambda pct: progress(25 + int(pct * 0.5)),
-        )
-
-        # 4. Load CT and lung masks, run nodule detection
-        await progress(80)
-        import SimpleITK as sitk
-
-        ct_image = sitk.ReadImage(str(ct_nifti))
-        ct_volume = sitk.GetArrayFromImage(ct_image)
-
-        # Build combined lung mask from TotalSegmentator output files
-        spacing = ct_image.GetSpacing()
-        spacing_mm = (spacing[2], spacing[1], spacing[0])
-
-        # Find all mask files and combine into lung mask
-        mask_files = list(lung_mask_dir.glob("*.nii.gz"))
-        if not mask_files:
-            raise ModelSchedulerError("No lung masks found after TotalSegmentator")
-
-        # Start with zeros
-        lung_mask = np.zeros(ct_volume.shape, dtype=np.int32)
-        label = 1
-        for mf in mask_files:
-            mask_img = sitk.ReadImage(str(mf))
-            mask_arr = sitk.GetArrayFromImage(mask_img)
-            lung_mask[mask_arr > 0] = label
-            label += 1
-
-        from app.ai.nodule_detection import detect_nodules
-        candidates = detect_nodules(ct_volume, lung_mask, spacing_mm)
-
-        # Store results
-        results = {
-            "total_candidates": len(candidates),
-            "candidates": [
-                {
-                    "nodule_id": c.nodule_id,
-                    "location": c.location,
-                    "laterality": c.laterality,
-                    "lobe": c.lobe,
-                    "diameter_mm": c.diameter_mm,
-                    "volume_mm3": c.volume_mm3,
-                    "mean_hu": c.mean_hu,
-                    "confidence": c.confidence,
-                }
-                for c in candidates
-            ],
-        }
-
-        # Update job and persist findings to DB
-        async with AsyncSessionLocal() as db:
-            from app.db.models import Finding
-
-            job = await db.get(AIJob, job_id)
-            if job:
-                job.status = "completed"
-                job.progress_pct = 100
-                job.result_json = results
-                job.completed_at = datetime.datetime.now(datetime.UTC)
-
-                # Create Finding rows for radiologist review
-                for c in candidates:
-                    finding = Finding(
-                        study_id=study_id,
-                        ai_job_id=job_id,
-                        finding_type="nodule",
-                        location=c.location,
-                        laterality=c.laterality,
-                        measurements={
-                            "longest_diameter_mm": c.diameter_mm,
-                            "volume_mm3": c.volume_mm3,
-                            "mean_hu": c.mean_hu,
-                        },
-                        characteristics=[c.lobe] if c.lobe else [],
-                        confidence=c.confidence,
-                        status="pending",
-                    )
-                    db.add(finding)
-
-                await db.commit()
-
-        await manager.send_complete(
-            study_id_str,
-            job_type="nodule_detection",
-            result_summary=f"Found {len(candidates)} nodule candidate(s)",
-        )
+            agent_log.log_step_complete("persistence", "Findings saved to database")
+            agent_log.finalize()
 
     except Exception as exc:
-        logger.error("Nodule detection job failed", study_id=study_id, error=str(exc))
+        logger.error("Nodule detection pipeline failed", study_id=study_id, error=str(exc))
+        agent_log.log_error("pipeline", str(exc))
         async with AsyncSessionLocal() as db:
-            job = await db.get(AIJob, job_id)
-            if job:
-                job.status = "failed"
-                job.error_message = str(exc)
-                await db.commit()
-        await manager.send_error(
-            study_id_str, job_type="nodule_detection", error=str(exc)
-        )
+            fs = FindingsService(db)
+            await fs.update_job_status(job_id, status="failed", error_message=str(exc))
+        await manager.send_error(study_id_str, job_type="nodule_detection", error=str(exc))
     finally:
-        shutil.rmtree(dicom_dir, ignore_errors=True)
-        shutil.rmtree(lung_mask_dir, ignore_errors=True)
-        ct_nifti.unlink(missing_ok=True)
+        await pipeline.cleanup()
 
 
 class AIJobOut(BaseModel):
@@ -272,6 +170,11 @@ async def run_ai(
     if not study:
         raise HTTPException(status_code=404, detail="Study not found")
 
+    # Resolve active model version for this job type
+    from app.ai.model_registry import ModelRegistryService
+    registry_svc = ModelRegistryService(db)
+    active_version = await registry_svc.resolve_version_for_job(body.job_type)
+
     job = AIJob(
         study_id=study_id,
         job_type=body.job_type,
@@ -279,6 +182,7 @@ async def run_ai(
         model_name="TotalSegmentator"
         if body.job_type == "totalsegmentator"
         else body.job_type,
+        model_version_id=active_version.id if active_version else None,
         status="queued",
     )
     db.add(job)
@@ -287,9 +191,17 @@ async def run_ai(
     await db.refresh(job)
 
     if body.job_type == "totalsegmentator":
-        background_tasks.add_task(
-            run_totalsegmentator_job, job.id, study_id, body.roi_subset, body.fast
-        )
+        if body.tier == 3:
+            # Cloud GPU (Tier 3) — full-resolution TotalSegmentator
+            from app.ai.totalsegmentator import run_totalsegmentator_cloud_job
+            background_tasks.add_task(
+                run_totalsegmentator_cloud_job, job.id, study_id, body.roi_subset
+            )
+        else:
+            # Local GPU (Tier 1) — fast mode
+            background_tasks.add_task(
+                run_totalsegmentator_job, job.id, study_id, body.roi_subset, body.fast
+            )
     elif body.job_type == "nninteractive":
         background_tasks.add_task(run_nninteractive_job, job.id, study_id, body.clicks)
     elif body.job_type == "nodule_detection":
@@ -314,3 +226,109 @@ async def get_job(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+# ─── Multi-Modality Endpoints ─────────────────────────────────────────────────
+
+class ModalityOut(BaseModel):
+    code: str
+    name: str
+    body_parts: list[str]
+    available_models: int
+    report_templates: int
+
+
+class ModalityModelOut(BaseModel):
+    name: str
+    description: str
+    vram_gb: float
+    tier: int
+    status: str
+
+
+@router.get(
+    "/modalities",
+    response_model=list[ModalityOut],
+    summary="List supported imaging modalities",
+)
+async def list_modalities(
+    _: User = Depends(get_current_user),
+) -> list[ModalityOut]:
+    """Return all supported imaging modalities and their capabilities."""
+    registry = get_modality_registry()
+    result = []
+
+    for code in registry.get_supported_modalities():
+        modality = registry.get_modality(code)
+        models = registry.get_available_models(code)
+        templates = registry.get_report_templates(code)
+
+        result.append(
+            ModalityOut(
+                code=code,
+                name=modality.name,
+                body_parts=modality.body_parts,
+                available_models=len(models),
+                report_templates=len(templates),
+            )
+        )
+
+    return result
+
+
+@router.get(
+    "/modalities/{dicom_code}/models",
+    response_model=list[ModalityModelOut],
+    summary="List available AI models for a modality",
+)
+async def get_modality_models(
+    dicom_code: str,
+    _: User = Depends(get_current_user),
+) -> list[ModalityModelOut]:
+    """Return available AI models for the specified modality."""
+    registry = get_modality_registry()
+    try:
+        models = registry.get_available_models(dicom_code)
+        return [ModalityModelOut(**m) for m in models]
+    except ModalityError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get(
+    "/studies/{study_id}/recommend-ai",
+    summary="Recommend AI analyses for a study based on modality and body part",
+)
+async def recommend_ai_for_study(
+    study_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> dict:
+    """Suggest appropriate AI models based on the study's modality and body part."""
+    study = await db.get(Study, study_id)
+    if not study:
+        raise HTTPException(status_code=404, detail="Study not found")
+
+    registry = get_modality_registry()
+
+    try:
+        modality = registry.get_modality(study.modality)
+        recommended_template = registry.recommend_template(
+            study.modality, study.body_part
+        )
+        available_models = registry.get_available_models(study.modality)
+
+        return {
+            "study_id": str(study_id),
+            "modality": modality.name,
+            "body_part": study.body_part,
+            "recommended_template": recommended_template,
+            "available_models": available_models,
+            "processing_requirements": modality.processing_requirements,
+        }
+    except ModalityError:
+        return {
+            "study_id": str(study_id),
+            "modality": study.modality,
+            "message": f"Modality '{study.modality}' not yet supported for AI analysis",
+            "available_models": [],
+        }

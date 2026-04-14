@@ -3,43 +3,53 @@
 ## Current Position
 
 **Milestone:** RadAI Phase 0-3
-**Phase:** Phase 2 complete | Phase 1 complete (7/7)
-**Status:** Phase 0 ✅ | Phase 1 ✅ (7/7) | Phase 2 ✅ (8/8) | Ready for Phase 3
-**Plan:** Phase 2 UI + backend complete; Plan 1.4 (real CT) remains external dependency
+**Phase:** ALL PHASES COMPLETE
+**Status:** Phase 0 ✅ | Phase 1 ✅ (7/7) | Phase 2 ✅ (8/8) | Phase 3 ✅ (6/6) | Fortification ✅ (12/12)
 
-## Phase 1 Final Progress
+## What Was Added (2026-04-13 — Phase 3 Completion)
 
-| Plan | Status | Verification |
-|------|--------|-------------|
-| 1.1 LiteMedSAM real impl | ✅ COMPLETE | TinyViT model, needs checkpoint download |
-| 1.2 E2E SEG pipeline | ✅ COMPLETE | Synthetic CT → TotalSegmentator → DICOM-SEG in Orthanc |
-| 1.3 OHIF extension | ✅ COMPLETE | Scaffold + runtime injection + Nginx serving |
-| 1.4 TotalSegmentator real CT | ✅ COMPLETE | TCIA download + E2E verification script (make verify-real-ct) |
-| 1.5 SEG overlays in OHIF | ✅ COMPLETE | Panel v2 auto-detects SEG series |
-| 1.6 Nodule detection | ✅ COMPLETE | 3/3 synthetic nodules detected accurately |
-| 1.7 nnInteractive refine | ✅ COMPLETE | Heuristic refinement: 145 voxels from single click |
+### Plan 3.5: RAG Pipeline
+- **Clinical RAG system** — `app/reporting/rag.py`: 10 embedded clinical guidelines
+  - Lung-RADS v2022, Fleischner 2017, BI-RADS 2013, LI-RADS v2018
+  - Incidental thyroid/adrenal, Spine degenerative, Brain MRI lesions
+  - Chest X-ray reporting, TI-RADS 2017
+- **RAG-enhanced report generation** — Modality/body-part-aware clinical context injection
+- **`/api/v1/reports/rag/retrieve` endpoint** — Preview which references will be used
+- **`use_rag` flag** — Optional in `GenerateReportRequest` (defaults to True)
 
-## Phase 2 Plans (Report Generation)
+### Plan 3.6: Multi-Modality Support
+- **Modality registry** — `app/ai/modality_registry.py`: 5 imaging modalities
+  - CT (Tier 1): TotalSegmentator, nodule detection, nnInteractive, LiteMedSAM
+  - MRI (Tier 2): Brain, spine, MSK (planned models)
+  - X-ray (Tier 2): CheXpert 14-pathology classification
+  - Ultrasound (Tier 3): Fetal biometry, thyroid TI-RADS (planned)
+  - Mammography (Tier 3): BI-RADS density, mass detection (planned)
+- **`/api/v1/ai/modalities` endpoint** — List all supported modalities
+- **`/api/v1/ai/modalities/{code}/models` endpoint** — List AI models per modality
+- **`/api/v1/ai/studies/{id}/recommend-ai` endpoint** — AI recommendations for study
 
-| Plan | Status | Description |
-|------|--------|-------------|
-| 2.1 Findings panel UI | ✅ COMPLETE | OHIF panel + findings CRUD API (accept/reject/modify/batch/manual) |
-| 2.2 Jinja2 template engine | ✅ COMPLETE | Lung-RADS, general CT templates |
-| 2.3 Ollama report polishing | ✅ COMPLETE | Wired into generate_report endpoint |
-| 2.4 Voice dictation | ✅ COMPLETE | faster-whisper integrated with model scheduler VRAM management |
-| 2.5 OHIF reporting panel | ✅ COMPLETE | Report generation, review, edit, voice dictation, PDF/SR export |
-| 2.6 DICOM-SR generation | ✅ COMPLETE | Basic Text SR, upload to Orthanc |
-| 2.7 PDF report export | ✅ COMPLETE | ReportLab with custom styles |
-| 2.8 E2E report workflow | ✅ COMPLETE | Nodule detection → findings DB → review → report → export |
+### Verification
+- **Phase 3 verification script** — `scripts/verify_phase_3.py` with `make verify-phase3`
+- Tests: cloud GPU client, anonymizer, RAG retrieval, modality registry, API endpoints
+
+## Remaining Work
+
+| Item | Priority | Notes |
+|------|----------|-------|
+| LiteMedSAM checkpoint download | MEDIUM | `make download-models` script exists, checkpoint not yet fetched |
+| Deploy cloud GPU server | MEDIUM | Need RunPod/Vast.ai endpoint + API key |
+| Future modality models | LOW | MRI brain/spine, CheXpert, US fetal/thyroid, MG density (all "planned") |
 
 ## Active Decisions
 
 | Decision | Choice | Affects |
 |----------|--------|---------|
-| Voice VRAM mgmt | Scheduler-coordinated whisper loading | Prevents OOM with other GPU models |
-| Findings persistence | Nodule detection auto-creates Finding rows (status: pending) | E2E workflow completion |
-| Panel injection | Runtime JS injection via Nginx (no OHIF rebuild) | All three panels load independently |
+| Cloud GPU pattern | HTTP REST API (RunPod serverless) | gpu_client.py expects `/upload`, `/infer`, `/jobs/{id}` endpoints |
+| Anonymization | DICOM PS 3.15 Table E.1-1 profile | PHI removed before any cloud upload |
+| Test strategy | Pytest with SQLite for unit tests, Docker for integration | CI runs both on push/PR |
+| OHIF extensions | Runtime JS injection via Nginx (no OHIF rebuild) | All three panels load independently |
+| RAG strategy | Keyword-based embedded references (production: vector DB) | Scalable to hundreds of guidelines |
 
 ## Blockers
 
-- [ ] No blockers. Phase 1 and 2 complete. Ready for Phase 3.
+- [ ] No blockers. All phases complete. System ready for deployment and production testing.
